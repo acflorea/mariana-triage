@@ -1,15 +1,13 @@
 package dr.acf.experiments
 
-import java.io.{File, FileInputStream}
 import java.util
 import java.util.TimeZone
 
-import dr.acf.utils.{RestrictedCSVRecordReader, SparkOps}
+import dr.acf.utils.SparkOps
 import org.apache.spark.rdd.RDD
-import org.datavec.api.conf.Configuration
 import org.datavec.api.records.reader.RecordReader
+import org.datavec.api.records.reader.impl.collection.CollectionRecordReader
 import org.datavec.api.records.reader.impl.csv.CSVRecordReader
-import org.datavec.api.split.InputStreamInputSplit
 import org.datavec.api.transform.TransformProcess
 import org.datavec.api.transform.schema.Schema
 import org.datavec.api.util.ClassPathResource
@@ -30,9 +28,7 @@ import org.nd4j.linalg.dataset.api.iterator.DataSetIterator
 import org.nd4j.linalg.lossfunctions.LossFunctions
 import org.slf4j.LoggerFactory
 
-import scala.collection.mutable
-import scala.collection.JavaConverters._
-import collection.JavaConversions._
+import scala.collection.JavaConversions._
 import scala.util.Try
 
 /**
@@ -66,6 +62,8 @@ object ParagraphToVec extends SparkOps {
   val log = LoggerFactory.getLogger(ParagraphToVec.getClass)
 
   def main(args: Array[String]): Unit = {
+
+    System.out.println("OMP_NUM_THREADS "+  System.getenv().get("OMP_NUM_THREADS"));
 
     //Print out the schema:
     log.info("Input data schema details:")
@@ -117,7 +115,7 @@ object ParagraphToVec extends SparkOps {
     val numericToCategoricalTransform: TransformProcess = new TransformProcess.Builder(filteredDataSchema)
       //Let's remove some column we don't need
       .integerToCategorical("component_id", mapping)
-      //.categoricalToOneHot("component_id")
+      .categoricalToOneHot("component_id")
       .build()
 
     //=====================================================================
@@ -126,32 +124,11 @@ object ParagraphToVec extends SparkOps {
     //Now, let's execute the transforms we defined earlier:
     val transformedData: RDD[util.List[Writable]] = SparkTransformExecutor.execute(filteredData, numericToCategoricalTransform)
 
-    transformedData.take(100) foreach println
-
-    // Global params
-    val batchSize: Int = 50
-
-    // Load training file
-    // assigned_to	bug_id	bug_severity	bug_status
-    // component_id	creation_ts	delta_ts	product_id
-    // resolution short_desc original_text text class
-    val file: File = new ClassPathResource("netbeansbugs.csv").getFile
-
-    val inputSplit = new InputStreamInputSplit(new FileInputStream(file))
-
-    val recordReader = new RestrictedCSVRecordReader(1, CSVRecordReader.DEFAULT_DELIMITER, Seq(1, 5))
-    recordReader.initialize(new Configuration(), inputSplit)
-
-    val possibleLabels: mutable.Set[Int] = mutable.Set.empty[Int]
-    while (recordReader.hasNext) {
-      possibleLabels.+=(recordReader.next().get(1).toInt)
-    }
-
-    recordReader.initialize(new Configuration(), new InputStreamInputSplit(new FileInputStream(file)))
-    recordReader.reset()
+    val possibleLabels = transformedData.map(_.get(2).toString).distinct().count().toInt
+    val recordReader = new CollectionRecordReader(transformedData.collect().toList)
 
     //reader,label index,number of possible labels
-    val iterator: DataSetIterator = new RecordReaderDataSetIterator(recordReader, 100, 1, possibleLabels.size)
+    val iterator: DataSetIterator = new RecordReaderDataSetIterator(recordReader, 100, 1, possibleLabels)
 
     val allData: DataSet = iterator.next()
     allData.shuffle()
@@ -160,8 +137,8 @@ object ParagraphToVec extends SparkOps {
     val trainingData: DataSet = testAndTrain.getTrain
     val testData: DataSet = testAndTrain.getTest
 
-    val numInputs = 1
-    val outputNum = possibleLabels.size
+    val numInputs = mapping.size()
+    val outputNum = possibleLabels
     val iterations = 1000
     val seed = 6
 
