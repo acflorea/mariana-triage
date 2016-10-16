@@ -31,6 +31,9 @@ import org.nd4j.linalg.lossfunctions.LossFunctions
 import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
+import scala.collection.JavaConverters._
+import collection.JavaConversions._
+import scala.util.Try
 
 /**
   * Created by acflorea on 15/10/2016.
@@ -41,7 +44,6 @@ object ParagraphToVec extends SparkOps {
   // The order in which columns are defined here should match
   // the order in which they appear in the input data
   val inputDataSchema: Schema = new Schema.Builder()
-    // record id
     .addColumnInteger("row_id")
     .addColumnInteger("assigned_to")
     .addColumnInteger("bug_id")
@@ -53,6 +55,11 @@ object ParagraphToVec extends SparkOps {
     .addColumnInteger("product_id")
     .addColumnCategorical("resolution", util.Arrays.asList("FIXED"))
     .addColumnsString("short_desc", "original_text", "text")
+    .addColumnInteger("class")
+    .build()
+
+  val filteredDataSchema: Schema = new Schema.Builder()
+    .addColumnInteger("component_id")
     .addColumnInteger("class")
     .build()
 
@@ -70,34 +77,56 @@ object ParagraphToVec extends SparkOps {
     log.info(s"Column types: ${inputDataSchema.getColumnTypes}")
 
     //=====================================================================
-    //            Step 2: Define the operations we want to do
+    //            Step 2.a: Define the operations we want to do
     //=====================================================================
-    val transformProcess: TransformProcess = new TransformProcess.Builder(inputDataSchema)
+    val filterColumnsTransform: TransformProcess = new TransformProcess.Builder(inputDataSchema)
       //Let's remove some column we don't need
       .removeAllColumnsExceptFor("component_id", "class")
       .build()
 
     // After executing all of these operations, we have a new and different schema:
-    val outputSchema: Schema = transformProcess.getFinalSchema
+    val outputSchema: Schema = filterColumnsTransform.getFinalSchema
 
     log.info("\n\n\nSchema after transforming data:")
     log.info(s"$outputSchema")
 
 
     //=====================================================================
-    //            Step 2: Transform
+    //            Step 2.b: Transform
     //=====================================================================
-    val directory: String = new ClassPathResource("netbeansbugs.csv").getFile.getPath //Normally just define your directory like "file:/..." or "hdfs:/..."
+    val directory: String = new ClassPathResource("netbeansbugs.csv").getFile.getPath
     val stringData: RDD[String] = sc.textFile(directory)
 
     //We first need to parse this format. It's comma-delimited (CSV) format, so let's parse it using CSVRecordReader:
-    val rr: RecordReader = new CSVRecordReader
+    val rr: RecordReader = new CSVRecordReader(0, CSVRecordReader.DEFAULT_DELIMITER)
     val parsedInputData: RDD[util.List[Writable]] = stringData.map(new StringToWritablesFunction(rr).call(_))
 
     //Now, let's execute the transforms we defined earlier:
-    val processedData: RDD[util.List[Writable]] = SparkTransformExecutor.execute(parsedInputData, transformProcess)
+    val filteredData: RDD[util.List[Writable]] = SparkTransformExecutor.execute(parsedInputData, filterColumnsTransform)
 
-    processedData.take(100) foreach println
+    val mapping: java.util.Map[java.lang.Integer, java.lang.String] =
+      new java.util.HashMap[java.lang.Integer, java.lang.String]()
+    filteredData.collect().foreach {
+      writables =>
+        if (Try(writables.get(1).toInt).isSuccess) mapping.put(writables.get(1).toInt, writables.get(1).toString)
+    }
+
+    //=====================================================================
+    //            Step 3.a: More transformations
+    //=====================================================================
+    val numericToCategoricalTransform: TransformProcess = new TransformProcess.Builder(filteredDataSchema)
+      //Let's remove some column we don't need
+      .integerToCategorical("component_id", mapping)
+      //.categoricalToOneHot("component_id")
+      .build()
+
+    //=====================================================================
+    //            Step 3.b: Transform
+    //=====================================================================
+    //Now, let's execute the transforms we defined earlier:
+    val transformedData: RDD[util.List[Writable]] = SparkTransformExecutor.execute(filteredData, numericToCategoricalTransform)
+
+    transformedData.take(100) foreach println
 
     // Global params
     val batchSize: Int = 50

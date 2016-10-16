@@ -1,5 +1,6 @@
 package dr.acf.utils
 
+import org.apache.log4j.{Level, Logger}
 import org.apache.spark.{SparkConf, SparkContext}
 
 /**
@@ -13,6 +14,13 @@ trait SparkOps {
   conf.setMaster("local[*]")
   conf.setAppName("mariana-triage")
 
-  lazy val sc: SparkContext = new SparkContext(conf)
+  lazy val sc: SparkContext = {
+    val _sc = new SparkContext(conf)
+
+    val rootLogger = Logger.getRootLogger
+    rootLogger.setLevel(Level.ERROR)
+
+    _sc
+  }
 
 }
