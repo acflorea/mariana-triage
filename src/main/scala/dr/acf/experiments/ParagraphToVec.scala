@@ -4,13 +4,18 @@ import java.io.{File, FileInputStream}
 import java.util
 import java.util.TimeZone
 
-import dr.acf.utils.RestrictedCSVRecordReader
+import dr.acf.utils.{RestrictedCSVRecordReader, SparkOps}
+import org.apache.spark.rdd.RDD
 import org.datavec.api.conf.Configuration
+import org.datavec.api.records.reader.RecordReader
 import org.datavec.api.records.reader.impl.csv.CSVRecordReader
 import org.datavec.api.split.InputStreamInputSplit
+import org.datavec.api.transform.TransformProcess
 import org.datavec.api.transform.schema.Schema
-import org.datavec.api.transform.transform.categorical.CategoricalToOneHotTransform
 import org.datavec.api.util.ClassPathResource
+import org.datavec.api.writable.Writable
+import org.datavec.spark.transform.SparkTransformExecutor
+import org.datavec.spark.transform.misc.StringToWritablesFunction
 import org.deeplearning4j.datasets.datavec.RecordReaderDataSetIterator
 import org.deeplearning4j.eval.Evaluation
 import org.deeplearning4j.nn.conf.layers.{DenseLayer, OutputLayer}
@@ -30,7 +35,7 @@ import scala.collection.mutable
 /**
   * Created by acflorea on 15/10/2016.
   */
-object ParagraphToVec {
+object ParagraphToVec extends SparkOps {
 
   // Let's define the schema of the data that we want to import
   // The order in which columns are defined here should match
@@ -54,6 +59,7 @@ object ParagraphToVec {
   val log = LoggerFactory.getLogger(ParagraphToVec.getClass)
 
   def main(args: Array[String]): Unit = {
+
     //Print out the schema:
     log.info("Input data schema details:")
     log.info(s"$inputDataSchema")
@@ -62,6 +68,36 @@ object ParagraphToVec {
     log.info(s"Number of columns: ${inputDataSchema.numColumns}")
     log.info(s"Column names: ${inputDataSchema.getColumnNames}")
     log.info(s"Column types: ${inputDataSchema.getColumnTypes}")
+
+    //=====================================================================
+    //            Step 2: Define the operations we want to do
+    //=====================================================================
+    val transformProcess: TransformProcess = new TransformProcess.Builder(inputDataSchema)
+      //Let's remove some column we don't need
+      .removeAllColumnsExceptFor("component_id", "class")
+      .build()
+
+    // After executing all of these operations, we have a new and different schema:
+    val outputSchema: Schema = transformProcess.getFinalSchema
+
+    log.info("\n\n\nSchema after transforming data:")
+    log.info(s"$outputSchema")
+
+
+    //=====================================================================
+    //            Step 2: Transform
+    //=====================================================================
+    val directory: String = new ClassPathResource("netbeansbugs.csv").getFile.getPath //Normally just define your directory like "file:/..." or "hdfs:/..."
+    val stringData: RDD[String] = sc.textFile(directory)
+
+    //We first need to parse this format. It's comma-delimited (CSV) format, so let's parse it using CSVRecordReader:
+    val rr: RecordReader = new CSVRecordReader
+    val parsedInputData: RDD[util.List[Writable]] = stringData.map(new StringToWritablesFunction(rr).call(_))
+
+    //Now, let's execute the transforms we defined earlier:
+    val processedData: RDD[util.List[Writable]] = SparkTransformExecutor.execute(parsedInputData, transformProcess)
+
+    processedData.take(100) foreach println
 
     // Global params
     val batchSize: Int = 50
