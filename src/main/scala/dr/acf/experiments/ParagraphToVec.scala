@@ -1,5 +1,6 @@
 package dr.acf.experiments
 
+import java.io.File
 import java.util
 import java.util.TimeZone
 
@@ -8,6 +9,7 @@ import org.apache.spark.rdd.RDD
 import org.datavec.api.records.reader.RecordReader
 import org.datavec.api.records.reader.impl.collection.CollectionRecordReader
 import org.datavec.api.records.reader.impl.csv.CSVRecordReader
+import org.datavec.api.records.writer.impl.misc.{LibSvmRecordWriter, SVMLightRecordWriter}
 import org.datavec.api.transform.TransformProcess
 import org.datavec.api.transform.schema.Schema
 import org.datavec.api.util.ClassPathResource
@@ -29,6 +31,7 @@ import org.nd4j.linalg.lossfunctions.LossFunctions
 import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConversions._
+import scala.collection.mutable.ListBuffer
 import scala.util.Try
 
 /**
@@ -63,7 +66,7 @@ object ParagraphToVec extends SparkOps {
 
   def main(args: Array[String]): Unit = {
 
-    System.out.println("OMP_NUM_THREADS "+  System.getenv().get("OMP_NUM_THREADS"));
+    System.out.println("OMP_NUM_THREADS " + System.getenv().get("OMP_NUM_THREADS"));
 
     //Print out the schema:
     log.info("Input data schema details:")
@@ -125,7 +128,19 @@ object ParagraphToVec extends SparkOps {
     val transformedData: RDD[util.List[Writable]] = SparkTransformExecutor.execute(filteredData, numericToCategoricalTransform)
 
     val possibleLabels = transformedData.map(_.get(2).toString).distinct().count().toInt
-    val recordReader = new CollectionRecordReader(transformedData.collect().toList)
+
+    val data = transformedData.collect().toList
+
+    //    val asJava: java.util.Collection[util.List[Writable]] = ListBuffer(data: _*)
+
+    val outLibSVM = new ClassPathResource("netbeansbugs.libsvm").getFile
+    // outLibSVM.createNewFile()
+    val writer = new SVMLightRecordWriter(outLibSVM, true)
+    data foreach {
+      writer.write(_)
+    }
+
+    val recordReader = new CollectionRecordReader(data)
 
     //reader,label index,number of possible labels
     val iterator: DataSetIterator = new RecordReaderDataSetIterator(recordReader, 100, 1, possibleLabels)
@@ -151,13 +166,13 @@ object ParagraphToVec extends SparkOps {
       .learningRate(0.1)
       .regularization(true).l2(1e-4)
       .list()
-      .layer(0, new DenseLayer.Builder().nIn(numInputs).nOut(100)
+      .layer(0, new DenseLayer.Builder().nIn(numInputs).nOut(10)
         .build())
-      .layer(1, new DenseLayer.Builder().nIn(100).nOut(100)
+      .layer(1, new DenseLayer.Builder().nIn(10).nOut(10)
         .build())
       .layer(2, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD)
         .activation("softmax")
-        .nIn(100).nOut(outputNum).build())
+        .nIn(10).nOut(outputNum).build())
       .backprop(true).pretrain(false)
       .build()
 
