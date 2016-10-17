@@ -2,7 +2,7 @@ package dr.acf.experiments
 
 import java.io.File
 import java.util
-import java.util.TimeZone
+import java.util.{Arrays, TimeZone}
 
 import dr.acf.utils.SparkOps
 import org.apache.spark.rdd.RDD
@@ -11,6 +11,9 @@ import org.datavec.api.records.reader.impl.collection.CollectionRecordReader
 import org.datavec.api.records.reader.impl.csv.CSVRecordReader
 import org.datavec.api.records.writer.impl.misc.{LibSvmRecordWriter, SVMLightRecordWriter}
 import org.datavec.api.transform.TransformProcess
+import org.datavec.api.transform.condition.ConditionOp
+import org.datavec.api.transform.condition.column.{CategoricalColumnCondition, IntegerColumnCondition}
+import org.datavec.api.transform.filter.ConditionFilter
 import org.datavec.api.transform.schema.Schema
 import org.datavec.api.util.ClassPathResource
 import org.datavec.api.writable.Writable
@@ -66,7 +69,7 @@ object ParagraphToVec extends SparkOps {
 
   def main(args: Array[String]): Unit = {
 
-    System.out.println("OMP_NUM_THREADS " + System.getenv().get("OMP_NUM_THREADS"));
+    System.out.println("OMP_NUM_THREADS " + System.getenv().get("OMP_NUM_THREADS"))
 
     //Print out the schema:
     log.info("Input data schema details:")
@@ -82,6 +85,7 @@ object ParagraphToVec extends SparkOps {
     //=====================================================================
     val filterColumnsTransform: TransformProcess = new TransformProcess.Builder(inputDataSchema)
       //Let's remove some column we don't need
+      .filter(new ConditionFilter(new IntegerColumnCondition("class", ConditionOp.GreaterOrEqual, 15)))
       .removeAllColumnsExceptFor("component_id", "class")
       .build()
 
@@ -109,14 +113,13 @@ object ParagraphToVec extends SparkOps {
       new java.util.HashMap[java.lang.Integer, java.lang.String]()
     filteredData.collect().foreach {
       writables =>
-        if (Try(writables.get(1).toInt).isSuccess) mapping.put(writables.get(1).toInt, writables.get(1).toString)
+        if (Try(writables.get(0).toInt).isSuccess) mapping.put(writables.get(0).toInt, writables.get(0).toString)
     }
 
     //=====================================================================
     //            Step 3.a: More transformations
     //=====================================================================
     val numericToCategoricalTransform: TransformProcess = new TransformProcess.Builder(filteredDataSchema)
-      //Let's remove some column we don't need
       .integerToCategorical("component_id", mapping)
       .categoricalToOneHot("component_id")
       .build()
@@ -127,18 +130,18 @@ object ParagraphToVec extends SparkOps {
     //Now, let's execute the transforms we defined earlier:
     val transformedData: RDD[util.List[Writable]] = SparkTransformExecutor.execute(filteredData, numericToCategoricalTransform)
 
-    val possibleLabels = transformedData.map(_.get(2).toString).distinct().count().toInt
+    val possibleLabels = transformedData.map(_.last.toString).distinct().count().toInt
 
     val data = transformedData.collect().toList
 
     //    val asJava: java.util.Collection[util.List[Writable]] = ListBuffer(data: _*)
 
-    val outLibSVM = new ClassPathResource("netbeansbugs.libsvm").getFile
-    // outLibSVM.createNewFile()
-    val writer = new SVMLightRecordWriter(outLibSVM, true)
-    data foreach {
-      writer.write(_)
-    }
+    //    val outLibSVM = new ClassPathResource("netbeansbugs.libsvm").getFile
+    //    // outLibSVM.createNewFile()
+    //    val writer = new SVMLightRecordWriter(outLibSVM, true)
+    //    data foreach {
+    //      writer.write(_)
+    //    }
 
     val recordReader = new CollectionRecordReader(data)
 
