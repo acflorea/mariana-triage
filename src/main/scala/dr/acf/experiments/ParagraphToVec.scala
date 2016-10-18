@@ -62,6 +62,7 @@ object ParagraphToVec extends SparkOps {
 
   val filteredDataSchema: Schema = new Schema.Builder()
     .addColumnInteger("component_id")
+    .addColumnInteger("product_id")
     .addColumnInteger("class")
     .build()
 
@@ -86,7 +87,7 @@ object ParagraphToVec extends SparkOps {
     val filterColumnsTransform: TransformProcess = new TransformProcess.Builder(inputDataSchema)
       //Let's remove some column we don't need
       .filter(new ConditionFilter(new IntegerColumnCondition("class", ConditionOp.GreaterOrEqual, 100)))
-      .removeAllColumnsExceptFor("component_id", "class")
+      .removeAllColumnsExceptFor("component_id", "product_id", "class")
       .build()
 
     // After executing all of these operations, we have a new and different schema:
@@ -109,7 +110,10 @@ object ParagraphToVec extends SparkOps {
     //Now, let's execute the transforms we defined earlier:
     val filteredData: RDD[util.List[Writable]] = SparkTransformExecutor.execute(parsedInputData, filterColumnsTransform)
 
-    val mapping: java.util.Map[java.lang.Integer, java.lang.String] =
+    val components: java.util.Map[java.lang.Integer, java.lang.String] =
+      new java.util.HashMap[java.lang.Integer, java.lang.String]()
+
+    val products: java.util.Map[java.lang.Integer, java.lang.String] =
       new java.util.HashMap[java.lang.Integer, java.lang.String]()
 
     val classes: java.util.Map[java.lang.Integer, java.lang.String] =
@@ -117,15 +121,17 @@ object ParagraphToVec extends SparkOps {
 
     filteredData.collect().foreach {
       writables =>
-        if (Try(writables.get(0).toInt).isSuccess) mapping.put(writables.get(0).toInt, writables.get(0).toString)
-        if (Try(writables.get(1).toInt).isSuccess) classes.put(writables.get(1).toInt, writables.get(1).toString)
+        if (Try(writables.get(0).toInt).isSuccess) components.put(writables.get(0).toInt, writables.get(0).toString)
+        if (Try(writables.get(1).toInt).isSuccess) products.put(writables.get(1).toInt, writables.get(1).toString)
+        if (Try(writables.last.toInt).isSuccess) classes.put(writables.last.toInt, writables.last.toString)
     }
 
     //=====================================================================
     //            Step 3.a: More transformations
     //=====================================================================
     val numericToCategoricalTransform: TransformProcess = new TransformProcess.Builder(filteredDataSchema)
-      .integerToCategorical("component_id", mapping)
+      .integerToCategorical("component_id", components)
+      .integerToCategorical("product_id", products)
       .integerToCategorical("class", classes)
       //.categoricalToOneHot("component_id")
       .build()
@@ -161,13 +167,13 @@ object ParagraphToVec extends SparkOps {
     val trainingData: DataSet = testAndTrain.getTrain
     val testData: DataSet = testAndTrain.getTest
 
-    val numInputs = 1 //mapping.size()
+    val numInputs = 2 //mapping.size()
     val outputNum = possibleLabels
     val iterations = 1000
     val seed = 6
 
-    val h1size = 5
-    val h2size = 5
+    val h1size = 25
+    val h2size = 25
     val activation = "softmax"
 
     log.info("Build model....")
