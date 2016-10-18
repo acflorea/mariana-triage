@@ -85,7 +85,7 @@ object ParagraphToVec extends SparkOps {
     //=====================================================================
     val filterColumnsTransform: TransformProcess = new TransformProcess.Builder(inputDataSchema)
       //Let's remove some column we don't need
-      .filter(new ConditionFilter(new IntegerColumnCondition("class", ConditionOp.GreaterOrEqual, 15)))
+      .filter(new ConditionFilter(new IntegerColumnCondition("class", ConditionOp.GreaterOrEqual, 25)))
       .removeAllColumnsExceptFor("component_id", "class")
       .build()
 
@@ -169,13 +169,13 @@ object ParagraphToVec extends SparkOps {
       .learningRate(0.1)
       .regularization(true).l2(1e-4)
       .list()
-      .layer(0, new DenseLayer.Builder().nIn(numInputs).nOut(10)
+      .layer(0, new DenseLayer.Builder().nIn(numInputs).nOut(25)
         .build())
-      .layer(1, new DenseLayer.Builder().nIn(10).nOut(10)
+      .layer(1, new DenseLayer.Builder().nIn(25).nOut(25)
         .build())
       .layer(2, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD)
         .activation("softmax")
-        .nIn(10).nOut(outputNum).build())
+        .nIn(25).nOut(outputNum).build())
       .backprop(true).pretrain(false)
       .build()
 
