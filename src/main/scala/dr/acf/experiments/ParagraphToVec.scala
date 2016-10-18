@@ -38,8 +38,8 @@ import scala.collection.mutable.ListBuffer
 import scala.util.Try
 
 /**
-  * Created by acflorea on 15/10/2016.
-  */
+ * Created by acflorea on 15/10/2016.
+ */
 object ParagraphToVec extends SparkOps {
 
   // Let's define the schema of the data that we want to import
@@ -86,7 +86,7 @@ object ParagraphToVec extends SparkOps {
     //=====================================================================
     val filterColumnsTransform: TransformProcess = new TransformProcess.Builder(inputDataSchema)
       //Let's remove some column we don't need
-      .filter(new ConditionFilter(new IntegerColumnCondition("class", ConditionOp.GreaterOrEqual, 100)))
+      .filter(new ConditionFilter(new IntegerColumnCondition("class", ConditionOp.GreaterOrEqual, 25)))
       .removeAllColumnsExceptFor("component_id", "product_id", "class")
       .build()
 
@@ -132,8 +132,9 @@ object ParagraphToVec extends SparkOps {
     val numericToCategoricalTransform: TransformProcess = new TransformProcess.Builder(filteredDataSchema)
       .integerToCategorical("component_id", components)
       .integerToCategorical("product_id", products)
+      .categoricalToOneHot("component_id")
+      .categoricalToOneHot("product_id")
       .integerToCategorical("class", classes)
-      //.categoricalToOneHot("component_id")
       .build()
 
     //=====================================================================
@@ -158,7 +159,8 @@ object ParagraphToVec extends SparkOps {
     val recordReader = new CollectionRecordReader(data)
 
     //reader,label index,number of possible labels
-    val iterator: DataSetIterator = new RecordReaderDataSetIterator(recordReader, 100, 1, possibleLabels)
+    val iterator: DataSetIterator =
+    new RecordReaderDataSetIterator(recordReader, 100, components.size() + products.size(), possibleLabels)
 
     val allData: DataSet = iterator.next()
     allData.shuffle()
@@ -167,14 +169,14 @@ object ParagraphToVec extends SparkOps {
     val trainingData: DataSet = testAndTrain.getTrain
     val testData: DataSet = testAndTrain.getTest
 
-    val numInputs = 2 //mapping.size()
+    val numInputs = components.size() + products.size()
     val outputNum = possibleLabels
-    val iterations = 150000
+    val iterations = 1500
     val seed = 6
 
-    val h1size = 50
-    val h2size = 25
-    val h3size = 50
+    val h1size = 100
+    val h2size = 100
+    val h3size = 100
     val learningRate = 0.15
     val activation = "relu"
     val activation_end = "softmax"
@@ -204,14 +206,17 @@ object ParagraphToVec extends SparkOps {
     //run the model
     val model: MultiLayerNetwork = new MultiLayerNetwork(conf)
     model.init()
-    model.setListeners(new ScoreIterationListener(1000))
+    model.setListeners(new ScoreIterationListener(100))
 
-    model.fit(trainingData)
+    //model.fit(trainingData)
+    model.fit(allData)
 
     //evaluate the model on the test set
     val eval: Evaluation = new Evaluation(outputNum)
-    val output: INDArray = model.output(testData.getFeatures)
-    eval.eval(testData.getLabels, output)
+    //val output: INDArray = model.output(testData.getFeatures)
+    //eval.eval(testData.getLabels, output)
+    val output: INDArray = model.output(allData.getFeatures)
+    eval.eval(allData.getLabels, output)
     log.info(eval.stats())
 
   }
