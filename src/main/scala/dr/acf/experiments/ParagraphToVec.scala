@@ -86,7 +86,7 @@ object ParagraphToVec extends SparkOps {
     //=====================================================================
     val filterColumnsTransform: TransformProcess = new TransformProcess.Builder(inputDataSchema)
       //Let's remove some column we don't need
-      .filter(new ConditionFilter(new IntegerColumnCondition("class", ConditionOp.GreaterOrEqual, 25)))
+      //.filter(new ConditionFilter(new IntegerColumnCondition("class", ConditionOp.GreaterOrEqual, 25)))
       .removeAllColumnsExceptFor("component_id", "product_id", "class")
       .build()
 
@@ -156,22 +156,21 @@ object ParagraphToVec extends SparkOps {
     //      writer.write(_)
     //    }
 
-    val recordReader = new CollectionRecordReader(data)
+    val (_trainingData, _testData) = data.splitAt(7 * data.size / 10)
 
-    //reader,label index,number of possible labels
-    val iterator: DataSetIterator =
-    new RecordReaderDataSetIterator(recordReader, 100, components.size() + products.size(), possibleLabels)
+    // train data
+    val trainRecordReader = new CollectionRecordReader(_trainingData)
+    val trainIterator: DataSetIterator =
+      new RecordReaderDataSetIterator(trainRecordReader, 100, components.size() + products.size(), possibleLabels)
 
-    val allData: DataSet = iterator.next()
-    allData.shuffle()
-    val testAndTrain: SplitTestAndTrain = allData.splitTestAndTrain(0.65); //Use 65% of data for training
-
-    val trainingData: DataSet = testAndTrain.getTrain
-    val testData: DataSet = testAndTrain.getTest
+    // test data
+    val testRecordReader = new CollectionRecordReader(_testData)
+    val testIterator: DataSetIterator =
+      new RecordReaderDataSetIterator(testRecordReader, _testData.length, components.size() + products.size(), possibleLabels)
 
     val numInputs = components.size() + products.size()
     val outputNum = possibleLabels
-    val iterations = 1500
+    val iterations = 1000
     val seed = 6
 
     val h1size = 100
@@ -180,7 +179,6 @@ object ParagraphToVec extends SparkOps {
     val learningRate = 0.15
     val activation = "relu"
     val activation_end = "softmax"
-
 
     log.info("Build model....")
     val conf: MultiLayerConfiguration = new NeuralNetConfiguration.Builder()
@@ -208,15 +206,14 @@ object ParagraphToVec extends SparkOps {
     model.init()
     model.setListeners(new ScoreIterationListener(100))
 
-    //model.fit(trainingData)
-    model.fit(allData)
+    model.fit(trainIterator)
 
     //evaluate the model on the test set
     val eval: Evaluation = new Evaluation(outputNum)
     //val output: INDArray = model.output(testData.getFeatures)
     //eval.eval(testData.getLabels, output)
-    val output: INDArray = model.output(allData.getFeatures)
-    eval.eval(allData.getLabels, output)
+    val output: INDArray = model.output(testIterator)
+    eval.eval(testIterator.next().getLabels, output)
     log.info(eval.stats())
 
   }
