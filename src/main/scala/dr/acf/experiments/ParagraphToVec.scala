@@ -169,21 +169,24 @@ object ParagraphToVec extends SparkOps {
 
     val numInputs = 2 //mapping.size()
     val outputNum = possibleLabels
-    val iterations = 5000
+    val iterations = 150000
     val seed = 6
 
-    val h1size = 30
-    val h2size = 30
-    val h3size = 30
-    val activation = "softmax"
+    val h1size = 50
+    val h2size = 25
+    val h3size = 50
+    val learningRate = 0.15
+    val activation = "relu"
+    val activation_end = "softmax"
+
 
     log.info("Build model....")
     val conf: MultiLayerConfiguration = new NeuralNetConfiguration.Builder()
       .seed(seed)
       .iterations(iterations)
-      .activation("tanh")
+      .activation(activation)
       .weightInit(WeightInit.XAVIER)
-      .learningRate(0.1)
+      .learningRate(learningRate)
       .regularization(true).l2(1e-4)
       .list()
       .layer(0, new DenseLayer.Builder().nIn(numInputs).nOut(h1size)
@@ -193,7 +196,7 @@ object ParagraphToVec extends SparkOps {
       .layer(2, new DenseLayer.Builder().nIn(h2size).nOut(h3size)
         .build())
       .layer(3, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD)
-        .activation(activation)
+        .activation(activation_end)
         .nIn(h3size).nOut(outputNum).build())
       .backprop(true).pretrain(false)
       .build()
@@ -201,7 +204,7 @@ object ParagraphToVec extends SparkOps {
     //run the model
     val model: MultiLayerNetwork = new MultiLayerNetwork(conf)
     model.init()
-    model.setListeners(new ScoreIterationListener(100))
+    model.setListeners(new ScoreIterationListener(1000))
 
     model.fit(trainingData)
 
