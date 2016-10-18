@@ -85,7 +85,7 @@ object ParagraphToVec extends SparkOps {
     //=====================================================================
     val filterColumnsTransform: TransformProcess = new TransformProcess.Builder(inputDataSchema)
       //Let's remove some column we don't need
-      .filter(new ConditionFilter(new IntegerColumnCondition("class", ConditionOp.GreaterOrEqual, 25)))
+      .filter(new ConditionFilter(new IntegerColumnCondition("class", ConditionOp.GreaterOrEqual, 100)))
       .removeAllColumnsExceptFor("component_id", "class")
       .build()
 
@@ -111,9 +111,14 @@ object ParagraphToVec extends SparkOps {
 
     val mapping: java.util.Map[java.lang.Integer, java.lang.String] =
       new java.util.HashMap[java.lang.Integer, java.lang.String]()
+
+    val classes: java.util.Map[java.lang.Integer, java.lang.String] =
+      new java.util.HashMap[java.lang.Integer, java.lang.String]()
+
     filteredData.collect().foreach {
       writables =>
         if (Try(writables.get(0).toInt).isSuccess) mapping.put(writables.get(0).toInt, writables.get(0).toString)
+        if (Try(writables.get(1).toInt).isSuccess) classes.put(writables.get(1).toInt, writables.get(1).toString)
     }
 
     //=====================================================================
@@ -121,7 +126,8 @@ object ParagraphToVec extends SparkOps {
     //=====================================================================
     val numericToCategoricalTransform: TransformProcess = new TransformProcess.Builder(filteredDataSchema)
       .integerToCategorical("component_id", mapping)
-      .categoricalToOneHot("component_id")
+      .integerToCategorical("class", classes)
+      //.categoricalToOneHot("component_id")
       .build()
 
     //=====================================================================
@@ -155,10 +161,14 @@ object ParagraphToVec extends SparkOps {
     val trainingData: DataSet = testAndTrain.getTrain
     val testData: DataSet = testAndTrain.getTest
 
-    val numInputs = mapping.size()
+    val numInputs = 1 //mapping.size()
     val outputNum = possibleLabels
     val iterations = 1000
     val seed = 6
+
+    val h1size = 5
+    val h2size = 5
+    val activation = "softmax"
 
     log.info("Build model....")
     val conf: MultiLayerConfiguration = new NeuralNetConfiguration.Builder()
@@ -169,13 +179,13 @@ object ParagraphToVec extends SparkOps {
       .learningRate(0.1)
       .regularization(true).l2(1e-4)
       .list()
-      .layer(0, new DenseLayer.Builder().nIn(numInputs).nOut(25)
+      .layer(0, new DenseLayer.Builder().nIn(numInputs).nOut(h1size)
         .build())
-      .layer(1, new DenseLayer.Builder().nIn(25).nOut(25)
+      .layer(1, new DenseLayer.Builder().nIn(h1size).nOut(h2size)
         .build())
-      .layer(2, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD)
-        .activation("softmax")
-        .nIn(25).nOut(outputNum).build())
+      .layer(1, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD)
+        .activation(activation)
+        .nIn(h2size).nOut(outputNum).build())
       .backprop(true).pretrain(false)
       .build()
 
