@@ -169,11 +169,12 @@ object ParagraphToVec extends SparkOps {
 
     val numInputs = 2 //mapping.size()
     val outputNum = possibleLabels
-    val iterations = 1000
+    val iterations = 5000
     val seed = 6
 
-    val h1size = 25
-    val h2size = 25
+    val h1size = 30
+    val h2size = 30
+    val h3size = 30
     val activation = "softmax"
 
     log.info("Build model....")
@@ -189,9 +190,11 @@ object ParagraphToVec extends SparkOps {
         .build())
       .layer(1, new DenseLayer.Builder().nIn(h1size).nOut(h2size)
         .build())
-      .layer(1, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD)
+      .layer(2, new DenseLayer.Builder().nIn(h2size).nOut(h3size)
+        .build())
+      .layer(3, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD)
         .activation(activation)
-        .nIn(h2size).nOut(outputNum).build())
+        .nIn(h3size).nOut(outputNum).build())
       .backprop(true).pretrain(false)
       .build()
 
