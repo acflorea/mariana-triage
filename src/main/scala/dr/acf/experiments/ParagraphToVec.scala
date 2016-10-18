@@ -86,7 +86,7 @@ object ParagraphToVec extends SparkOps {
     //=====================================================================
     val filterColumnsTransform: TransformProcess = new TransformProcess.Builder(inputDataSchema)
       //Let's remove some column we don't need
-      //.filter(new ConditionFilter(new IntegerColumnCondition("class", ConditionOp.GreaterOrEqual, 25)))
+      .filter(new ConditionFilter(new IntegerColumnCondition("class", ConditionOp.GreaterOrEqual, 20)))
       .removeAllColumnsExceptFor("component_id", "product_id", "class")
       .build()
 
@@ -208,12 +208,14 @@ object ParagraphToVec extends SparkOps {
 
     model.fit(trainIterator)
 
+    val testData = testIterator.next()
+
     //evaluate the model on the test set
     val eval: Evaluation = new Evaluation(outputNum)
     //val output: INDArray = model.output(testData.getFeatures)
     //eval.eval(testData.getLabels, output)
-    val output: INDArray = model.output(testIterator)
-    eval.eval(testIterator.next().getLabels, output)
+    val output: INDArray = model.output(testData.getFeatures)
+    eval.eval(testData.getLabels, output)
     log.info(eval.stats())
 
   }
