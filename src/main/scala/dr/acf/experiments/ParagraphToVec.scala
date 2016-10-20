@@ -1,18 +1,16 @@
 package dr.acf.experiments
 
-import java.io.File
 import java.util
-import java.util.{Arrays, TimeZone}
+import java.util.TimeZone
 
 import dr.acf.utils.SparkOps
 import org.apache.spark.rdd.RDD
 import org.datavec.api.records.reader.RecordReader
 import org.datavec.api.records.reader.impl.collection.CollectionRecordReader
 import org.datavec.api.records.reader.impl.csv.CSVRecordReader
-import org.datavec.api.records.writer.impl.misc.{LibSvmRecordWriter, SVMLightRecordWriter}
 import org.datavec.api.transform.TransformProcess
 import org.datavec.api.transform.condition.ConditionOp
-import org.datavec.api.transform.condition.column.{CategoricalColumnCondition, IntegerColumnCondition}
+import org.datavec.api.transform.condition.column.IntegerColumnCondition
 import org.datavec.api.transform.filter.ConditionFilter
 import org.datavec.api.transform.schema.Schema
 import org.datavec.api.util.ClassPathResource
@@ -27,20 +25,20 @@ import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.deeplearning4j.nn.weights.WeightInit
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener
 import org.nd4j.linalg.api.ndarray.INDArray
-import org.nd4j.linalg.dataset.SplitTestAndTrain
-import org.nd4j.linalg.dataset.api.DataSet
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator
 import org.nd4j.linalg.lossfunctions.LossFunctions
 import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConversions._
-import scala.collection.mutable.ListBuffer
 import scala.util.Try
 
 /**
- * Created by acflorea on 15/10/2016.
- */
+  * Created by acflorea on 15/10/2016.
+  */
 object ParagraphToVec extends SparkOps {
+
+  val severityValues = util.Arrays.asList("normal", "enhancement", "major", "trivial", "critical", "minor", "blocker")
+  val statusValues = util.Arrays.asList("CLOSED", "RESOLVED", "VERIFIED", "trivial", "critical", "minor")
 
   // Let's define the schema of the data that we want to import
   // The order in which columns are defined here should match
@@ -49,8 +47,8 @@ object ParagraphToVec extends SparkOps {
     .addColumnInteger("row_id")
     .addColumnInteger("assigned_to")
     .addColumnInteger("bug_id")
-    .addColumnCategorical("bug_severity", util.Arrays.asList("normal", "enhancement", "major", "trivial", "critical", "minor"))
-    .addColumnCategorical("bug_status", util.Arrays.asList("CLOSED", "RESOLVED", "VERIFIED", "trivial", "critical", "minor"))
+    .addColumnCategorical("bug_severity", severityValues)
+    .addColumnCategorical("bug_status", statusValues)
     .addColumnInteger("component_id")
     .addColumnTime("creation_ts", TimeZone.getDefault)
     .addColumnTime("delta_ts", TimeZone.getDefault)
@@ -61,6 +59,7 @@ object ParagraphToVec extends SparkOps {
     .build()
 
   val filteredDataSchema: Schema = new Schema.Builder()
+    .addColumnCategorical("bug_severity", severityValues)
     .addColumnInteger("component_id")
     .addColumnInteger("product_id")
     .addColumnInteger("class")
@@ -86,8 +85,8 @@ object ParagraphToVec extends SparkOps {
     //=====================================================================
     val filterColumnsTransform: TransformProcess = new TransformProcess.Builder(inputDataSchema)
       //Let's remove some column we don't need
-      .filter(new ConditionFilter(new IntegerColumnCondition("class", ConditionOp.GreaterOrEqual, 20)))
-      .removeAllColumnsExceptFor("component_id", "product_id", "class")
+      .filter(new ConditionFilter(new IntegerColumnCondition("class", ConditionOp.GreaterOrEqual, 25)))
+      .removeAllColumnsExceptFor("bug_severity", "component_id", "product_id", "class")
       .build()
 
     // After executing all of these operations, we have a new and different schema:
@@ -121,8 +120,8 @@ object ParagraphToVec extends SparkOps {
 
     filteredData.collect().foreach {
       writables =>
-        if (Try(writables.get(0).toInt).isSuccess) components.put(writables.get(0).toInt, writables.get(0).toString)
-        if (Try(writables.get(1).toInt).isSuccess) products.put(writables.get(1).toInt, writables.get(1).toString)
+        if (Try(writables.get(1).toInt).isSuccess) components.put(writables.get(1).toInt, writables.get(1).toString)
+        if (Try(writables.get(2).toInt).isSuccess) products.put(writables.get(2).toInt, writables.get(2).toString)
         if (Try(writables.last.toInt).isSuccess) classes.put(writables.last.toInt, writables.last.toString)
     }
 
@@ -132,6 +131,7 @@ object ParagraphToVec extends SparkOps {
     val numericToCategoricalTransform: TransformProcess = new TransformProcess.Builder(filteredDataSchema)
       .integerToCategorical("component_id", components)
       .integerToCategorical("product_id", products)
+      .categoricalToOneHot("bug_severity")
       .categoricalToOneHot("component_id")
       .categoricalToOneHot("product_id")
       .integerToCategorical("class", classes)
@@ -156,19 +156,21 @@ object ParagraphToVec extends SparkOps {
     //      writer.write(_)
     //    }
 
+    val featureSpaceSize = components.size() + products.size() + severityValues.size()
+
     val (_trainingData, _testData) = data.splitAt(7 * data.size / 10)
 
     // train data
     val trainRecordReader = new CollectionRecordReader(_trainingData)
     val trainIterator: DataSetIterator =
-      new RecordReaderDataSetIterator(trainRecordReader, 100, components.size() + products.size(), possibleLabels)
+      new RecordReaderDataSetIterator(trainRecordReader, 100, featureSpaceSize, possibleLabels)
 
     // test data
     val testRecordReader = new CollectionRecordReader(_testData)
     val testIterator: DataSetIterator =
-      new RecordReaderDataSetIterator(testRecordReader, _testData.length, components.size() + products.size(), possibleLabels)
+      new RecordReaderDataSetIterator(testRecordReader, _testData.length, featureSpaceSize, possibleLabels)
 
-    val numInputs = components.size() + products.size()
+    val numInputs = featureSpaceSize
     val outputNum = possibleLabels
     val iterations = 1000
     val seed = 6
