@@ -19,8 +19,9 @@ import org.datavec.spark.transform.SparkTransformExecutor
 import org.datavec.spark.transform.misc.StringToWritablesFunction
 import org.deeplearning4j.datasets.datavec.RecordReaderDataSetIterator
 import org.deeplearning4j.eval.Evaluation
-import org.deeplearning4j.nn.conf.layers.{DenseLayer, OutputLayer}
-import org.deeplearning4j.nn.conf.{MultiLayerConfiguration, NeuralNetConfiguration}
+import org.deeplearning4j.nn.api.OptimizationAlgorithm
+import org.deeplearning4j.nn.conf.layers.{DenseLayer, GravesLSTM, OutputLayer, RnnOutputLayer}
+import org.deeplearning4j.nn.conf.{GradientNormalization, MultiLayerConfiguration, NeuralNetConfiguration, Updater}
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.deeplearning4j.nn.weights.WeightInit
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener
@@ -183,6 +184,23 @@ object ParagraphToVec extends SparkOps {
     val activation_end = "softmax"
 
     log.info("Build model....")
+    //Set up network configuration
+    val rnn_conf: MultiLayerConfiguration = new NeuralNetConfiguration.Builder()
+      .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
+      .iterations(iterations)
+      .updater(Updater.RMSPROP)
+      .regularization(true).l2(1e-5)
+      .weightInit(WeightInit.XAVIER)
+      .gradientNormalization(GradientNormalization.ClipElementWiseAbsoluteValue).gradientNormalizationThreshold(1.0)
+      .learningRate(0.0018)
+      .list
+      .layer(0, new GravesLSTM.Builder().nIn(featureSpaceSize).nOut(h1size).activation("softsign")
+        .build())
+      .layer(1, new RnnOutputLayer.Builder().activation("softmax")
+        .lossFunction(LossFunctions.LossFunction.MCXENT).nIn(h1size).nOut(outputNum)
+        .build())
+      .pretrain(false).backprop(true).build
+
     val conf: MultiLayerConfiguration = new NeuralNetConfiguration.Builder()
       .seed(seed)
       .iterations(iterations)
@@ -190,7 +208,7 @@ object ParagraphToVec extends SparkOps {
       .weightInit(WeightInit.XAVIER)
       .learningRate(learningRate)
       .regularization(true).l2(1e-4)
-      .list()
+      .list
       .layer(0, new DenseLayer.Builder().nIn(numInputs).nOut(h1size)
         .build())
       .layer(1, new DenseLayer.Builder().nIn(h1size).nOut(h2size)
@@ -204,7 +222,7 @@ object ParagraphToVec extends SparkOps {
       .build()
 
     //run the model
-    val model: MultiLayerNetwork = new MultiLayerNetwork(conf)
+    val model: MultiLayerNetwork = new MultiLayerNetwork(rnn_conf)
     model.init()
     model.setListeners(new ScoreIterationListener(100))
 
