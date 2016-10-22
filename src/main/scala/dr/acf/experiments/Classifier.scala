@@ -36,7 +36,7 @@ import scala.util.Try
 /**
   * Created by acflorea on 15/10/2016.
   */
-object ParagraphToVec extends SparkOps {
+object Classifier extends SparkOps {
 
   val severityValues = util.Arrays.asList("normal", "enhancement", "major", "trivial", "critical", "minor", "blocker")
   val statusValues = util.Arrays.asList("CLOSED", "RESOLVED", "VERIFIED", "trivial", "critical", "minor")
@@ -66,7 +66,7 @@ object ParagraphToVec extends SparkOps {
     .addColumnInteger("class")
     .build()
 
-  val log = LoggerFactory.getLogger(ParagraphToVec.getClass)
+  val log = LoggerFactory.getLogger(Classifier.getClass)
 
   def main(args: Array[String]): Unit = {
 
@@ -100,7 +100,7 @@ object ParagraphToVec extends SparkOps {
     //=====================================================================
     //            Step 2.b: Transform
     //=====================================================================
-    val directory: String = new ClassPathResource("netbeansbugs.csv").getFile.getPath
+    val directory: String = new ClassPathResource("netbeansbugs_light.csv").getFile.getPath
     val stringData: RDD[String] = sc.textFile(directory)
 
     //We first need to parse this format. It's comma-delimited (CSV) format, so let's parse it using CSVRecordReader:
