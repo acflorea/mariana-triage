@@ -2,7 +2,7 @@ package dr.acf.experiments
 
 import java.io.File
 import java.util
-import java.util.TimeZone
+import java.util.{Collections, TimeZone}
 
 import dr.acf.utils.SparkOps
 import org.apache.spark.rdd.RDD
@@ -20,6 +20,7 @@ import org.datavec.spark.transform.SparkTransformExecutor
 import org.datavec.spark.transform.misc.StringToWritablesFunction
 import org.deeplearning4j.datasets.datavec.RecordReaderDataSetIterator
 import org.deeplearning4j.eval.Evaluation
+import org.deeplearning4j.models.embeddings.loader.WordVectorSerializer
 import org.deeplearning4j.models.paragraphvectors.ParagraphVectors
 import org.deeplearning4j.nn.api.OptimizationAlgorithm
 import org.deeplearning4j.nn.conf.layers.{DenseLayer, GravesLSTM, OutputLayer, RnnOutputLayer}
@@ -39,6 +40,7 @@ import org.nd4j.linalg.lossfunctions.LossFunctions
 import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConversions._
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.util.Try
 
@@ -69,10 +71,10 @@ object ParagraphVector extends SparkOps {
     .build()
 
   val filteredDataSchema: Schema = new Schema.Builder()
+    .addColumnsString("original_text")
     .addColumnCategorical("bug_severity", severityValues)
     .addColumnInteger("component_id")
     .addColumnInteger("product_id")
-    .addColumnsString("original_text")
     .addColumnInteger("class")
     .build()
 
@@ -96,8 +98,10 @@ object ParagraphVector extends SparkOps {
     //=====================================================================
     val filterColumnsTransform: TransformProcess = new TransformProcess.Builder(inputDataSchema)
       //Let's remove some column we don't need
-      .filter(new ConditionFilter(new IntegerColumnCondition("class", ConditionOp.GreaterOrEqual, 25)))
+      // .filter(new ConditionFilter(new IntegerColumnCondition("class", ConditionOp.GreaterOrEqual, 3)))
+      .filter(new ConditionFilter(new IntegerColumnCondition("component_id", ConditionOp.NotEqual, 125)))
       .removeAllColumnsExceptFor("original_text", "bug_severity", "component_id", "product_id", "class")
+      .reorderColumns("original_text", "bug_severity", "component_id", "product_id", "class")
       .build()
 
     // After executing all of these operations, we have a new and different schema:
@@ -110,7 +114,7 @@ object ParagraphVector extends SparkOps {
     //=====================================================================
     //            Step 2.b: Transform
     //=====================================================================
-    val directory: String = new ClassPathResource("netbeansbugs_light.csv").getFile.getPath
+    val directory: String = new ClassPathResource("netbeansbugs.csv").getFile.getPath
     val stringData: RDD[String] = sc.textFile(directory)
 
     //We first need to parse this format. It's comma-delimited (CSV) format, so let's parse it using CSVRecordReader:
@@ -127,29 +131,32 @@ object ParagraphVector extends SparkOps {
       new java.util.HashMap[java.lang.Integer, java.lang.String]()
 
     val classes: java.util.Map[java.lang.Integer, java.lang.String] =
-      new java.util.HashMap[java.lang.Integer, java.lang.String]()
+      new java.util.concurrent.ConcurrentHashMap[java.lang.Integer, java.lang.String]()
+    val distinctClasses = mutable.Set.empty[Int]
 
-    filteredData.collect().foreach {
+    val descs = filteredData.collect().map {
       writables =>
-        if (Try(writables.get(1).toInt).isSuccess) components.put(writables.get(1).toInt, writables.get(1).toString)
-        if (Try(writables.get(2).toInt).isSuccess) products.put(writables.get(2).toInt, writables.get(2).toString)
-        if (Try(writables.last.toInt).isSuccess) classes.put(writables.last.toInt, writables.last.toString)
+        if (Try(writables.get(2).toInt).isSuccess) components.put(writables.get(2).toInt, writables.get(2).toString)
+        if (Try(writables.get(3).toInt).isSuccess) products.put(writables.get(3).toInt, writables.get(3).toString)
+        if (Try(writables.last.toInt).isSuccess) distinctClasses += writables.last.toInt
+        writables.get(0).toString
+    }
+
+    distinctClasses.zipWithIndex map { classWithIndex =>
+      classes.put(classWithIndex._1, classWithIndex._2.toString)
     }
 
     //=====================================================================
     //            PARAGRAPH VECTOR !!!
     //=====================================================================
-    val descs = filteredData map { writables =>
-      writables.get(3).toString
-    }
 
     // build a iterator for our dataset
-    val ptvIterator = new CollectionSentenceIterator(descs.collect().toList)
+    val ptvIterator = new CollectionSentenceIterator(descs.toList)
 
     val tokenizerFactory = new DefaultTokenizerFactory
     tokenizerFactory.setTokenPreProcessor(new CommonPreprocessor)
 
-    val epochs = 25
+    val epochs = 20
     // ParagraphVectors training configuration
     val paragraphVectors = new ParagraphVectors.Builder()
       .learningRate(0.025).minLearningRate(0.001)
@@ -159,6 +166,9 @@ object ParagraphVector extends SparkOps {
 
     // Start model training
     paragraphVectors.fit()
+
+    log.info("Save vectors....");
+    // WordVectorSerializer.writeWord2Vec(paragraphVectors, "paragraphVectors.txt");
 
     //    log.info("Plot TSNE....");
     //    val tsne = new BarnesHutTsne.Builder()
@@ -176,7 +186,6 @@ object ParagraphVector extends SparkOps {
     //            Step 3.a: More transformations
     //=====================================================================
     val numericToCategoricalTransform: TransformProcess = new TransformProcess.Builder(filteredDataSchema)
-      .reorderColumns("original_text", "bug_severity", "component_id", "product_id", "class")
       .integerToCategorical("component_id", components)
       .integerToCategorical("product_id", products)
       .categoricalToOneHot("bug_severity")
@@ -191,7 +200,7 @@ object ParagraphVector extends SparkOps {
     //Now, let's execute the transforms we defined earlier:
     val transformedData: RDD[util.List[Writable]] = SparkTransformExecutor.execute(filteredData, numericToCategoricalTransform)
 
-    val possibleLabels = transformedData.map(_.last.toString).distinct().count().toInt
+    val possibleLabels = classes.size()
 
     val data = transformedData.collect().toList.map { row =>
       seqAsJavaList(paragraphVectors.inferVector(row.head.toString).
@@ -214,16 +223,20 @@ object ParagraphVector extends SparkOps {
     // train data
     val trainRecordReader = new CollectionRecordReader(_trainingData)
     val trainIterator: DataSetIterator =
-      new RecordReaderDataSetIterator(trainRecordReader, 100, featureSpaceSize, possibleLabels)
+      new RecordReaderDataSetIterator(trainRecordReader, Math.min(_trainingData.size, 100), featureSpaceSize, possibleLabels)
 
     // test data
-    val testRecordReader = new CollectionRecordReader(_testData)
+//    val testRecordReader = new CollectionRecordReader(_testData)
+//    val testIterator: DataSetIterator =
+//      new RecordReaderDataSetIterator(testRecordReader, _testData.length, featureSpaceSize, possibleLabels)
+
+    val testRecordReader = new CollectionRecordReader(_trainingData)
     val testIterator: DataSetIterator =
-      new RecordReaderDataSetIterator(testRecordReader, _testData.length, featureSpaceSize, possibleLabels)
+      new RecordReaderDataSetIterator(testRecordReader, _trainingData.length, featureSpaceSize, possibleLabels)
 
     val numInputs = featureSpaceSize
     val outputNum = possibleLabels
-    val iterations = 1000
+    val iterations = 7500
     val seed = 6
 
     val h1size = 100
