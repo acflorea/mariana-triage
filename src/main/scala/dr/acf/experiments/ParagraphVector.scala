@@ -99,7 +99,7 @@ object ParagraphVector extends SparkOps {
     val filterColumnsTransform: TransformProcess = new TransformProcess.Builder(inputDataSchema)
       //Let's remove some column we don't need
       // .filter(new ConditionFilter(new IntegerColumnCondition("class", ConditionOp.GreaterOrEqual, 3)))
-      .filter(new ConditionFilter(new IntegerColumnCondition("component_id", ConditionOp.NotEqual, 125)))
+      // .filter(new ConditionFilter(new IntegerColumnCondition("component_id", ConditionOp.NotEqual, 128)))
       .removeAllColumnsExceptFor("original_text", "bug_severity", "component_id", "product_id", "class")
       .reorderColumns("original_text", "bug_severity", "component_id", "product_id", "class")
       .build()
@@ -151,7 +151,7 @@ object ParagraphVector extends SparkOps {
     //=====================================================================
 
     // build a iterator for our dataset
-    val ptvIterator = new CollectionSentenceIterator(descs.toList)
+    val ptvIterator = new CollectionSentenceIterator(descs.flatMap(_.split("\\. ")).toList)
 
     val tokenizerFactory = new DefaultTokenizerFactory
     tokenizerFactory.setTokenPreProcessor(new CommonPreprocessor)
@@ -167,8 +167,10 @@ object ParagraphVector extends SparkOps {
     // Start model training
     paragraphVectors.fit()
 
-    log.info("Save vectors....");
-    // WordVectorSerializer.writeWord2Vec(paragraphVectors, "paragraphVectors.txt");
+    log.info("Save vectors....")
+    WordVectorSerializer.writeParagraphVectors(paragraphVectors, "netbeans.model")
+
+    //   val paragraphVectors =  WordVectorSerializer.readParagraphVectors(new ClassPathResource("short_desc.model").getFile)
 
     //    log.info("Plot TSNE....");
     //    val tsne = new BarnesHutTsne.Builder()
@@ -226,13 +228,13 @@ object ParagraphVector extends SparkOps {
       new RecordReaderDataSetIterator(trainRecordReader, Math.min(_trainingData.size, 100), featureSpaceSize, possibleLabels)
 
     // test data
-//    val testRecordReader = new CollectionRecordReader(_testData)
-//    val testIterator: DataSetIterator =
-//      new RecordReaderDataSetIterator(testRecordReader, _testData.length, featureSpaceSize, possibleLabels)
-
-    val testRecordReader = new CollectionRecordReader(_trainingData)
+    val testRecordReader = new CollectionRecordReader(_testData)
     val testIterator: DataSetIterator =
-      new RecordReaderDataSetIterator(testRecordReader, _trainingData.length, featureSpaceSize, possibleLabels)
+      new RecordReaderDataSetIterator(testRecordReader, _testData.length, featureSpaceSize, possibleLabels)
+
+    //    val testRecordReader = new CollectionRecordReader(_trainingData)
+    //    val testIterator: DataSetIterator =
+    //      new RecordReaderDataSetIterator(testRecordReader, _trainingData.length, featureSpaceSize, possibleLabels)
 
     val numInputs = featureSpaceSize
     val outputNum = possibleLabels
