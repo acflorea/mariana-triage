@@ -24,7 +24,7 @@ import org.deeplearning4j.models.embeddings.loader.WordVectorSerializer
 import org.deeplearning4j.models.paragraphvectors.ParagraphVectors
 import org.deeplearning4j.nn.api.OptimizationAlgorithm
 import org.deeplearning4j.nn.conf.layers.{DenseLayer, GravesLSTM, OutputLayer, RnnOutputLayer}
-import org.deeplearning4j.nn.conf.{GradientNormalization, MultiLayerConfiguration, NeuralNetConfiguration, Updater}
+import org.deeplearning4j.nn.conf._
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.deeplearning4j.nn.weights.WeightInit
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener
@@ -37,6 +37,7 @@ import org.deeplearning4j.text.tokenization.tokenizerfactory.DefaultTokenizerFac
 import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator
 import org.nd4j.linalg.lossfunctions.LossFunctions
+import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction
 import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConversions._
@@ -98,10 +99,10 @@ object ParagraphVector extends SparkOps {
     //=====================================================================
     val filterColumnsTransform: TransformProcess = new TransformProcess.Builder(inputDataSchema)
       //Let's remove some column we don't need
-      // .filter(new ConditionFilter(new IntegerColumnCondition("class", ConditionOp.GreaterOrEqual, 3)))
+      //      .filter(new ConditionFilter(new IntegerColumnCondition("class", ConditionOp.GreaterOrEqual, 2)))
       // .filter(new ConditionFilter(new IntegerColumnCondition("component_id", ConditionOp.NotEqual, 128)))
-      .removeAllColumnsExceptFor("original_text", "bug_severity", "component_id", "product_id", "class")
-      .reorderColumns("original_text", "bug_severity", "component_id", "product_id", "class")
+      .removeAllColumnsExceptFor("text", "bug_severity", "component_id", "product_id", "class")
+      .reorderColumns("text", "bug_severity", "component_id", "product_id", "class")
       .build()
 
     // After executing all of these operations, we have a new and different schema:
@@ -114,7 +115,7 @@ object ParagraphVector extends SparkOps {
     //=====================================================================
     //            Step 2.b: Transform
     //=====================================================================
-    val directory: String = new ClassPathResource("netbeansbugs.csv").getFile.getPath
+    val directory: String = new ClassPathResource("netbeansbugs_filtered.csv").getFile.getPath
     val stringData: RDD[String] = sc.textFile(directory)
 
     //We first need to parse this format. It's comma-delimited (CSV) format, so let's parse it using CSVRecordReader:
@@ -152,25 +153,27 @@ object ParagraphVector extends SparkOps {
 
     // build a iterator for our dataset
     val ptvIterator = new CollectionSentenceIterator(descs.flatMap(_.split("\\. ")).toList)
-
+    //
     val tokenizerFactory = new DefaultTokenizerFactory
     tokenizerFactory.setTokenPreProcessor(new CommonPreprocessor)
 
-    val epochs = 20
-    // ParagraphVectors training configuration
-    val paragraphVectors = new ParagraphVectors.Builder()
-      .learningRate(0.025).minLearningRate(0.001)
-      .batchSize(1000).epochs(epochs)
-      .iterate(ptvIterator).trainWordVectors(true)
-      .tokenizerFactory(tokenizerFactory).build
+    //    val epochs = 5
+    //    // ParagraphVectors training configuration
+    //    val paragraphVectors = new ParagraphVectors.Builder()
+    //      .learningRate(0.025).minLearningRate(0.001)
+    //      .batchSize(2500).epochs(epochs)
+    //      .iterate(ptvIterator).trainWordVectors(true)
+    //      .tokenizerFactory(tokenizerFactory).build
+    //
+    //    // Start model training
+    //    paragraphVectors.fit()
+    //
+    //    log.info("Save vectors....")
+    //    WordVectorSerializer.writeParagraphVectors(paragraphVectors, "netbeans_05.model")
 
-    // Start model training
-    paragraphVectors.fit()
+    val paragraphVectors = WordVectorSerializer.readParagraphVectors(new File("netbeans_05.model"))
+    paragraphVectors.setTokenizerFactory(tokenizerFactory)
 
-    log.info("Save vectors....")
-    WordVectorSerializer.writeParagraphVectors(paragraphVectors, "netbeans.model")
-
-    //   val paragraphVectors =  WordVectorSerializer.readParagraphVectors(new ClassPathResource("short_desc.model").getFile)
 
     //    log.info("Plot TSNE....");
     //    val tsne = new BarnesHutTsne.Builder()
@@ -204,7 +207,7 @@ object ParagraphVector extends SparkOps {
 
     val possibleLabels = classes.size()
 
-    val data = transformedData.collect().toList.map { row =>
+    val data = transformedData.collect().toList.collect { case row if row.head.toString.nonEmpty =>
       seqAsJavaList(paragraphVectors.inferVector(row.head.toString).
         data().asDouble().map(new DoubleWritable(_)) ++ row.drop(1))
     }
@@ -220,7 +223,7 @@ object ParagraphVector extends SparkOps {
 
     val featureSpaceSize = paragraphVectors.getLayerSize + components.size() + products.size() + severityValues.size()
 
-    val (_trainingData, _testData) = data.splitAt(7 * data.size / 10)
+    val (_trainingData, _testData) = data.splitAt(9 * data.size / 10)
 
     // train data
     val trainRecordReader = new CollectionRecordReader(_trainingData)
@@ -241,7 +244,7 @@ object ParagraphVector extends SparkOps {
     val iterations = 7500
     val seed = 6
 
-    val h1size = 100
+    val h1size = 25
     val h2size = 100
     val h3size = 100
     val learningRate = 0.15
@@ -264,6 +267,30 @@ object ParagraphVector extends SparkOps {
       .layer(1, new RnnOutputLayer.Builder().activation("softmax")
         .lossFunction(LossFunctions.LossFunction.MCXENT).nIn(h1size).nOut(outputNum)
         .build())
+      .pretrain(false).backprop(true).build
+
+    val tbpttLength = 50
+    //Set up network configuration:
+    val rnn_conf_2: MultiLayerConfiguration = new NeuralNetConfiguration.Builder()
+      .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
+      .iterations(1)
+      .learningRate(0.1)
+      .rmsDecay(0.95)
+      .seed(12345)
+      .regularization(true).l2(0.001)
+      .weightInit(WeightInit.XAVIER)
+      .updater(Updater.RMSPROP)
+      .list
+      .layer(0, new GravesLSTM.Builder().nIn(numInputs).nOut(h1size).activation("tanh")
+        .build())
+      .layer(1, new GravesLSTM.Builder().nIn(h1size).nOut(h2size).activation("tanh")
+        .build())
+      .layer(2, new RnnOutputLayer.Builder(LossFunction.MCXENT).activation("softmax")
+        .nIn(h2size).nOut(outputNum)
+        .build())
+      .backpropType(BackpropType.TruncatedBPTT)
+      .tBPTTForwardLength(tbpttLength)
+      .tBPTTBackwardLength(tbpttLength)
       .pretrain(false).backprop(true).build
 
     val conf: MultiLayerConfiguration = new NeuralNetConfiguration.Builder()
