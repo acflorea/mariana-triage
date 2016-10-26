@@ -244,7 +244,7 @@ object ParagraphVector extends SparkOps {
     val iterations = 7500
     val seed = 6
 
-    val h1size = 25
+    val h1size = 100
     val h2size = 100
     val h3size = 100
     val learningRate = 0.15
@@ -314,7 +314,7 @@ object ParagraphVector extends SparkOps {
       .build()
 
     //run the model
-    val model: MultiLayerNetwork = new MultiLayerNetwork(rnn_conf)
+    val model: MultiLayerNetwork = new MultiLayerNetwork(rnn_conf_2)
     model.init()
     model.setListeners(new ScoreIterationListener(100))
 
