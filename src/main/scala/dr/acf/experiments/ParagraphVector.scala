@@ -98,7 +98,7 @@ object ParagraphVector extends SparkOps {
     //=====================================================================
     val filterColumnsTransform: TransformProcess = new TransformProcess.Builder(inputDataSchema)
       //Let's remove some column we don't need
-      //      .filter(new ConditionFilter(new IntegerColumnCondition("class", ConditionOp.GreaterOrEqual, 2)))
+      //            .filter(new ConditionFilter(new IntegerColumnCondition("class", ConditionOp.GreaterOrEqual, 2)))
       // .filter(new ConditionFilter(new IntegerColumnCondition("component_id", ConditionOp.NotEqual, 128)))
       .removeAllColumnsExceptFor("text", "bug_severity", "component_id", "product_id", "class")
       .reorderColumns("text", "bug_severity", "component_id", "product_id", "class")
@@ -150,6 +150,8 @@ object ParagraphVector extends SparkOps {
     //            PARAGRAPH VECTOR !!!
     //=====================================================================
 
+    log.info("Build Embedded Vectors ....")
+
     // build a iterator for our dataset
     val ptvIterator = new CollectionSentenceIterator(descs.flatMap(_.split("\\. ")).toList)
     //
@@ -170,9 +172,10 @@ object ParagraphVector extends SparkOps {
     //    log.info("Save vectors....")
     //    WordVectorSerializer.writeParagraphVectors(paragraphVectors, "netbeans_05.model")
 
-    val paragraphVectors = WordVectorSmartSerializer.readParagraphVectors(new File("netbeans_05.model"))
+    val paragraphVectors = WordVectorSmartSerializer.readParagraphVectors(new File("netbeans_20.model"))
     paragraphVectors.setTokenizerFactory(tokenizerFactory)
 
+    log.info("Embedded Vectors OK ....")
 
     //    log.info("Plot TSNE....");
     //    val tsne = new BarnesHutTsne.Builder()
@@ -240,7 +243,7 @@ object ParagraphVector extends SparkOps {
 
     val numInputs = featureSpaceSize
     val outputNum = possibleLabels
-    val iterations = 7500
+    val iterations = 100
     val seed = 6
 
     val h1size = 100
@@ -309,7 +312,7 @@ object ParagraphVector extends SparkOps {
       .build()
 
     //run the model
-    val model: MultiLayerNetwork = new MultiLayerNetwork(rnn_conf_2)
+    val model: MultiLayerNetwork = new MultiLayerNetwork(rnn_conf)
     model.init()
     model.setListeners(new ScoreIterationListener(100))
 
