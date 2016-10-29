@@ -4,7 +4,7 @@ import java.io.File
 import java.util
 import java.util.{Collections, TimeZone}
 
-import dr.acf.utils.SparkOps
+import dr.acf.utils.{SparkOps, WordVectorSmartSerializer}
 import org.apache.spark.rdd.RDD
 import org.datavec.api.records.reader.RecordReader
 import org.datavec.api.records.reader.impl.collection.CollectionRecordReader
@@ -20,7 +20,6 @@ import org.datavec.spark.transform.SparkTransformExecutor
 import org.datavec.spark.transform.misc.StringToWritablesFunction
 import org.deeplearning4j.datasets.datavec.RecordReaderDataSetIterator
 import org.deeplearning4j.eval.Evaluation
-import org.deeplearning4j.models.embeddings.loader.WordVectorSerializer
 import org.deeplearning4j.models.paragraphvectors.ParagraphVectors
 import org.deeplearning4j.nn.api.OptimizationAlgorithm
 import org.deeplearning4j.nn.conf.layers.{DenseLayer, GravesLSTM, OutputLayer, RnnOutputLayer}
@@ -171,7 +170,7 @@ object ParagraphVector extends SparkOps {
     //    log.info("Save vectors....")
     //    WordVectorSerializer.writeParagraphVectors(paragraphVectors, "netbeans_05.model")
 
-    val paragraphVectors = WordVectorSerializer.readParagraphVectors(new File("netbeans_05.model"))
+    val paragraphVectors = WordVectorSmartSerializer.readParagraphVectors(new File("netbeans_05.model"))
     paragraphVectors.setTokenizerFactory(tokenizerFactory)
 
 
@@ -269,11 +268,10 @@ object ParagraphVector extends SparkOps {
         .build())
       .pretrain(false).backprop(true).build
 
-    val tbpttLength = 50
     //Set up network configuration:
     val rnn_conf_2: MultiLayerConfiguration = new NeuralNetConfiguration.Builder()
       .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
-      .iterations(1)
+      .iterations(iterations)
       .learningRate(0.1)
       .rmsDecay(0.95)
       .seed(12345)
@@ -288,9 +286,6 @@ object ParagraphVector extends SparkOps {
       .layer(2, new RnnOutputLayer.Builder(LossFunction.MCXENT).activation("softmax")
         .nIn(h2size).nOut(outputNum)
         .build())
-      .backpropType(BackpropType.TruncatedBPTT)
-      .tBPTTForwardLength(tbpttLength)
-      .tBPTTBackwardLength(tbpttLength)
       .pretrain(false).backprop(true).build
 
     val conf: MultiLayerConfiguration = new NeuralNetConfiguration.Builder()
