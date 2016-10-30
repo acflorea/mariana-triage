@@ -216,7 +216,7 @@ object ParagraphVector extends SparkOps {
     val outputNum = possibleLabels
     val iterations = 1000
 
-    val layer1width = 100
+    val layer1width = 150
     val learningRate = 0.0018
     val activation = "softsign"
 
@@ -276,10 +276,15 @@ object ParagraphVector extends SparkOps {
     val trainingData = sc.parallelize(trainIterator.toList)
     (1 to numEpochs) foreach { i =>
       sparkNet.fit(trainingData)
-      log.info("Completed Epoch {}", i);
-      val evaluation: Evaluation = sparkNet.evaluate(testData)
-      log.info("***** Evaluation *****")
-      log.info(evaluation.stats)
+      log.info(s"Completed Epoch $i");
+
+      val evaluationTrain: Evaluation = sparkNet.evaluate(trainingData)
+      log.info("***** Evaluation TRAIN DATA *****")
+      log.info(evaluationTrain.stats)
+
+      val evaluationTest: Evaluation = sparkNet.evaluate(testData)
+      log.info("***** Evaluation TEST DATA *****")
+      log.info(evaluationTest.stats)
     }
 
     //Delete the temp training files, now that we are done with them
