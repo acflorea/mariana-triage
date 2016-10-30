@@ -19,7 +19,7 @@ trait SparkOps {
     val _sc = new SparkContext(conf)
 
     val rootLogger = Logger.getRootLogger
-    rootLogger.setLevel(Level.INFO)
+    rootLogger.setLevel(Level.WARN)
 
     _sc
   }

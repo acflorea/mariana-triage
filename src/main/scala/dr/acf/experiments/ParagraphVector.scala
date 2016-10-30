@@ -268,19 +268,19 @@ object ParagraphVector extends SparkOps {
     val sparkNet = new SparkDl4jMultiLayer(sc, rnn_conf, tm)
 
     //Execute training:
-    val numEpochs = 3
+    val numEpochs = 15
+
+    //Perform evaluation (distributed)
+    val testData = sc.parallelize(testIterator.toList)
 
     val trainingData = sc.parallelize(trainIterator.toList)
     (1 to numEpochs) foreach { i =>
       sparkNet.fit(trainingData)
       log.info("Completed Epoch {}", i);
+      val evaluation: Evaluation = sparkNet.evaluate(testData)
+      log.info("***** Evaluation *****")
+      log.info(evaluation.stats)
     }
-
-    //Perform evaluation (distributed)
-    val testData = sc.parallelize(testIterator.toList)
-    val evaluation: Evaluation = sparkNet.evaluate(testData)
-    log.info("***** Evaluation *****")
-    log.info(evaluation.stats)
 
     //Delete the temp training files, now that we are done with them
     tm.deleteTempFiles(sc)
