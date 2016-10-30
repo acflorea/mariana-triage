@@ -28,6 +28,8 @@ import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.deeplearning4j.nn.weights.WeightInit
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener
 import org.deeplearning4j.plot.BarnesHutTsne
+import org.deeplearning4j.spark.impl.multilayer.SparkDl4jMultiLayer
+import org.deeplearning4j.spark.impl.paramavg.ParameterAveragingTrainingMaster
 import org.deeplearning4j.text.documentiterator.{LabelAwareIterator, LabelledDocument}
 import org.deeplearning4j.text.sentenceiterator.{BasicLineIterator, CollectionSentenceIterator}
 import org.deeplearning4j.text.sentenceiterator.labelaware.LabelAwareListSentenceIterator
@@ -37,6 +39,7 @@ import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator
 import org.nd4j.linalg.lossfunctions.LossFunctions
 import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction
+import org.nd4j.linalg.lossfunctions.impl.LossMCXENT
 import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConversions._
@@ -99,7 +102,7 @@ object ParagraphVector extends SparkOps {
     val filterColumnsTransform: TransformProcess = new TransformProcess.Builder(inputDataSchema)
       //Let's remove some column we don't need
       //            .filter(new ConditionFilter(new IntegerColumnCondition("class", ConditionOp.GreaterOrEqual, 2)))
-      // .filter(new ConditionFilter(new IntegerColumnCondition("component_id", ConditionOp.NotEqual, 128)))
+      //.filter(new ConditionFilter(new IntegerColumnCondition("component_id", ConditionOp.NotEqual, 128)))
       .removeAllColumnsExceptFor("text", "bug_severity", "component_id", "product_id", "class")
       .reorderColumns("text", "bug_severity", "component_id", "product_id", "class")
       .build()
@@ -172,7 +175,7 @@ object ParagraphVector extends SparkOps {
     //    log.info("Save vectors....")
     //    WordVectorSerializer.writeParagraphVectors(paragraphVectors, "netbeans_05.model")
 
-    val paragraphVectors = WordVectorSmartSerializer.readParagraphVectors(new File("netbeans_20.model"))
+    val paragraphVectors = WordVectorSmartSerializer.readParagraphVectors(new File("netbeans_03.model"))
     paragraphVectors.setTokenizerFactory(tokenizerFactory)
 
     log.info("Embedded Vectors OK ....")
@@ -225,12 +228,28 @@ object ParagraphVector extends SparkOps {
 
     val featureSpaceSize = paragraphVectors.getLayerSize + components.size() + products.size() + severityValues.size()
 
+    val batchSize = 100
+    val averagingFrequency = 5
+
+    val numInputs = featureSpaceSize
+    val outputNum = possibleLabels
+    val iterations = 1000
+
+    val seed = 6
+    val h1size = 100
+    val h2size = 100
+    val h3size = 100
+    val learningRate = 0.15
+    val activation = "relu"
+
+    val activation_end = "softmax"
+
     val (_trainingData, _testData) = data.splitAt(9 * data.size / 10)
 
     // train data
     val trainRecordReader = new CollectionRecordReader(_trainingData)
     val trainIterator: DataSetIterator =
-      new RecordReaderDataSetIterator(trainRecordReader, Math.min(_trainingData.size, 100), featureSpaceSize, possibleLabels)
+      new RecordReaderDataSetIterator(trainRecordReader, Math.min(_trainingData.size, batchSize), featureSpaceSize, possibleLabels)
 
     // test data
     val testRecordReader = new CollectionRecordReader(_testData)
@@ -241,17 +260,6 @@ object ParagraphVector extends SparkOps {
     //    val testIterator: DataSetIterator =
     //      new RecordReaderDataSetIterator(testRecordReader, _trainingData.length, featureSpaceSize, possibleLabels)
 
-    val numInputs = featureSpaceSize
-    val outputNum = possibleLabels
-    val iterations = 100
-    val seed = 6
-
-    val h1size = 100
-    val h2size = 100
-    val h3size = 100
-    val learningRate = 0.15
-    val activation = "relu"
-    val activation_end = "softmax"
 
     log.info("Build model....")
     //Set up network configuration
@@ -264,30 +272,13 @@ object ParagraphVector extends SparkOps {
       .gradientNormalization(GradientNormalization.ClipElementWiseAbsoluteValue).gradientNormalizationThreshold(1.0)
       .learningRate(0.0018)
       .list
-      .layer(0, new GravesLSTM.Builder().nIn(featureSpaceSize).nOut(h1size).activation("softsign")
+      .layer(0, new GravesLSTM.Builder().nIn(featureSpaceSize).nOut(h1size)
+        .activation("softsign")
         .build())
-      .layer(1, new RnnOutputLayer.Builder().activation("softmax")
-        .lossFunction(LossFunctions.LossFunction.MCXENT).nIn(h1size).nOut(outputNum)
-        .build())
-      .pretrain(false).backprop(true).build
-
-    //Set up network configuration:
-    val rnn_conf_2: MultiLayerConfiguration = new NeuralNetConfiguration.Builder()
-      .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
-      .iterations(iterations)
-      .learningRate(0.1)
-      .rmsDecay(0.95)
-      .seed(12345)
-      .regularization(true).l2(0.001)
-      .weightInit(WeightInit.XAVIER)
-      .updater(Updater.RMSPROP)
-      .list
-      .layer(0, new GravesLSTM.Builder().nIn(numInputs).nOut(h1size).activation("tanh")
-        .build())
-      .layer(1, new GravesLSTM.Builder().nIn(h1size).nOut(h2size).activation("tanh")
-        .build())
-      .layer(2, new RnnOutputLayer.Builder(LossFunction.MCXENT).activation("softmax")
-        .nIn(h2size).nOut(outputNum)
+      //.layer(1, new RnnOutputLayer.Builder(LossFunctions.LossFunction.MCXENT.getILossFunction)
+      .layer(1, new RnnOutputLayer.Builder()
+        .activation("softmax")
+        .nIn(h1size).nOut(outputNum)
         .build())
       .pretrain(false).backprop(true).build
 
@@ -313,20 +304,48 @@ object ParagraphVector extends SparkOps {
 
     //run the model
     val model: MultiLayerNetwork = new MultiLayerNetwork(rnn_conf)
-    model.init()
-    model.setListeners(new ScoreIterationListener(100))
 
-    model.fit(trainIterator)
+    val tm = new ParameterAveragingTrainingMaster.Builder(batchSize)
+      .averagingFrequency(averagingFrequency)
+      .workerPrefetchNumBatches(2)
+      .batchSizePerWorker(batchSize)
+      .build()
 
-    val testData = testIterator.next()
+    //Create the Spark network
+    val sparkNet = new SparkDl4jMultiLayer(sc, rnn_conf, tm)
 
-    //evaluate the model on the test set
-    val eval: Evaluation = new Evaluation(outputNum)
-    //val output: INDArray = model.output(testData.getFeatures)
-    //eval.eval(testData.getLabels, output)
-    val output: INDArray = model.output(testData.getFeatures)
-    eval.eval(testData.getLabels, output)
-    log.info(eval.stats())
+    //Execute training:
+    val numEpochs = 1
+
+    val trainingData = sc.parallelize(trainIterator.toList)
+    (1 to numEpochs) foreach { i =>
+      sparkNet.fit(trainingData)
+      log.info("Completed Epoch {}", i);
+    }
+
+    //Perform evaluation (distributed)
+    val testData = sc.parallelize(testIterator.toList)
+    val evaluation: Evaluation = sparkNet.evaluate(testData)
+    log.info("***** Evaluation *****")
+    log.info(evaluation.stats)
+
+    //Delete the temp training files, now that we are done with them
+    tm.deleteTempFiles(sc)
+
+    //    model.init()
+    //    model.setListeners(new ScoreIterationListener(100))
+    //
+    //    model.fit(trainIterator)
+    //
+    //    val testData = testIterator.next()
+    //
+    //    //evaluate the model on the test set
+    //    val eval: Evaluation = new Evaluation(outputNum)
+    //    //val output: INDArray = model.output(testData.getFeatures)
+    //    //eval.eval(testData.getLabels, output)
+    //    val output: INDArray = model.output(testData.getFeatures)
+    //    eval.eval(testData.getLabels, output)
+    //    log.info(eval.stats())
 
   }
 

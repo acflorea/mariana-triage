@@ -9,9 +9,12 @@ resolvers += "Local Maven Repository" at "file://" + "/Users/acflorea" + "/.m2/r
 libraryDependencies ++= Seq(
   "org.deeplearning4j" % "deeplearning4j-core" % "0.6.0"
   , "org.deeplearning4j" % "deeplearning4j-nlp" % "0.6.0" excludeAll ExclusionRule(organization = "ch.qos.logback")
+  , "org.deeplearning4j" % "dl4j-spark_2.11" % "0.6.0"
   , "org.nd4j" % "nd4j-native-platform" % "0.6.1-SNAPSHOT"
   , "org.datavec" % "datavec-api" % "0.6.0"
   , "org.datavec" %% "datavec-spark" % "0.6.0" excludeAll ExclusionRule(artifact = "slf4j-log4j12")
+
+  , "com.beust" % "jcommander" % "1.7"
 )
 
 dependencyOverrides ++= Set(
