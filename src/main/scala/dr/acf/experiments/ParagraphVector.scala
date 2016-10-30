@@ -216,7 +216,7 @@ object ParagraphVector extends SparkOps {
     val outputNum = possibleLabels
     val iterations = 1000
 
-    val layer1width = 150
+    val layer1width = 250
     val learningRate = 0.0018
     val activation = "softsign"
 
@@ -276,7 +276,7 @@ object ParagraphVector extends SparkOps {
     val trainingData = sc.parallelize(trainIterator.toList)
     (1 to numEpochs) foreach { i =>
       sparkNet.fit(trainingData)
-      log.info(s"Completed Epoch $i");
+      log.info(s"Completed Epoch $i")
 
       val evaluationTrain: Evaluation = sparkNet.evaluate(trainingData)
       log.info("***** Evaluation TRAIN DATA *****")
