@@ -42,11 +42,11 @@ object ParagraphVector extends SparkOps {
 
   val inputFileName = "netbeansbugs_filtered.csv"
   val computeEmbeddings = false
-  val epochsForEmbeddings = 5
+  val epochsForEmbeddings = 20
   val modelName = if (epochsForEmbeddings < 10)
     s"netbeans_0$epochsForEmbeddings.model"
   else
-    "s\"netbeans_0$epochsForEmbeddings.model\""
+    s"netbeans_$epochsForEmbeddings.model"
 
   val severityValues = util.Arrays.asList("normal", "enhancement", "major", "trivial", "critical", "minor", "blocker")
   val statusValues = util.Arrays.asList("CLOSED", "RESOLVED", "VERIFIED", "trivial", "critical", "minor")
