@@ -4,7 +4,7 @@ import java.io.File
 import java.util
 import java.util.TimeZone
 
-import dr.acf.utils.{SparkOps, WordVectorSmartSerializer}
+import dr.acf.utils.{SmartEvaluation, SparkOps, WordVectorSmartSerializer}
 import org.apache.spark.rdd.RDD
 import org.datavec.api.records.reader.RecordReader
 import org.datavec.api.records.reader.impl.collection.CollectionRecordReader
@@ -216,7 +216,7 @@ object ParagraphVector extends SparkOps {
     val outputNum = possibleLabels
     val iterations = 1000
 
-    val layer1width = 250
+    val layer1width = 15
     val learningRate = 0.0018
     val activation = "softsign"
 
@@ -268,7 +268,7 @@ object ParagraphVector extends SparkOps {
     val sparkNet = new SparkDl4jMultiLayer(sc, rnn_conf, tm)
 
     //Execute training:
-    val numEpochs = 15
+    val numEpochs = 45
 
     //Perform evaluation (distributed)
     val testData = sc.parallelize(testIterator.toList)
@@ -278,13 +278,13 @@ object ParagraphVector extends SparkOps {
       sparkNet.fit(trainingData)
       log.info(s"Completed Epoch $i")
 
-      val evaluationTrain: Evaluation = sparkNet.evaluate(trainingData)
+      val evaluationTrain: SmartEvaluation = new SmartEvaluation(sparkNet.evaluate(trainingData))
       log.info("***** Evaluation TRAIN DATA *****")
-      log.info(evaluationTrain.stats)
+      log.info(evaluationTrain.stats(false))
 
-      val evaluationTest: Evaluation = sparkNet.evaluate(testData)
+      val evaluationTest: SmartEvaluation = new SmartEvaluation(sparkNet.evaluate(testData))
       log.info("***** Evaluation TEST DATA *****")
-      log.info(evaluationTest.stats)
+      log.info(evaluationTest.stats(false))
     }
 
     //Delete the temp training files, now that we are done with them
