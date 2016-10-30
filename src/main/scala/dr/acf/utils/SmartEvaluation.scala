@@ -127,6 +127,6 @@ class SmartEvaluation(eval: Evaluation) {
         classCount += eval.classCount(classLabel)
       }
     }
-    wf1 / classCount.toDouble
+    f1Acc / classCount.toDouble
   }
 }
