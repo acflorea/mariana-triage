@@ -3,7 +3,7 @@ package dr.acf.utils
 import java.lang
 import java.text.DecimalFormat
 import org.deeplearning4j.eval.Evaluation
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 /**
   * Created by acflorea on 30/10/2016.
@@ -119,10 +119,10 @@ class SmartEvaluation(eval: Evaluation) {
   def wf1: Double = {
     var f1Acc: Double = 0.0
     var classCount: Int = 0
-    for (classLabel <- eval.getConfusionMatrix.getClasses) {
+    eval.getConfusionMatrix.getClasses.asScala foreach { classLabel =>
       val precision: Double = eval.precision(classLabel, -1)
       val recall: Double = eval.recall(classLabel, -1.0)
-      if (precision != -1 && recall != -1.0) {
+      if (precision > 0 && recall > 0) {
         f1Acc += 2.0 * (precision * recall / (precision + recall)) * eval.classCount(classLabel)
         classCount += eval.classCount(classLabel)
       }
