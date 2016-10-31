@@ -98,7 +98,7 @@ class SmartEvaluation(eval: Evaluation) {
     var recallAcc: Double = 0.0
     var classCount: Int = 0
     import scala.collection.JavaConversions._
-    for (classLabel <- eval.getConfusionMatrix.getClasses()) {
+    for (classLabel <- eval.getConfusionMatrix.getClasses) {
       val recall: Double = eval.recall(classLabel, -1.0)
       if (recall != -1.0) {
         recallAcc += eval.recall(classLabel) * eval.classCount(classLabel)
@@ -119,11 +119,11 @@ class SmartEvaluation(eval: Evaluation) {
   def wf1: Double = {
     var f1Acc: Double = 0.0
     var classCount: Int = 0
-    for (classLabel <- eval.getConfusionMatrix.getClasses()) {
+    for (classLabel <- eval.getConfusionMatrix.getClasses) {
       val precision: Double = eval.precision(classLabel, -1)
       val recall: Double = eval.recall(classLabel, -1.0)
       if (precision != -1 && recall != -1.0) {
-        f1Acc += 2.0 * (precision * recall / (precision + recall))
+        f1Acc += 2.0 * (precision * recall / (precision + recall)) * eval.classCount(classLabel)
         classCount += eval.classCount(classLabel)
       }
     }
