@@ -57,7 +57,7 @@ class SmartEvaluation(eval: Evaluation) {
     builder.append("\n F1 Score:  ").append(format(df, f1))
     builder.append("\n WPrecision: ").append(format(df, wprec))
     builder.append("\n WRecall:    ").append(format(df, wrec))
-    builder.append("\n WF1 Score:  ").append(format(df, wf1))
+    builder.append("\n WF1 Score:  ").append(format(df, _wf1))
     builder.append("\n========================================================================")
     builder.toString
   }
