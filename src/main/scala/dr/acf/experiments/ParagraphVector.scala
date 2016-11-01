@@ -16,11 +16,10 @@ import org.datavec.api.writable.{DoubleWritable, Writable}
 import org.datavec.spark.transform.SparkTransformExecutor
 import org.datavec.spark.transform.misc.StringToWritablesFunction
 import org.deeplearning4j.datasets.datavec.RecordReaderDataSetIterator
-import org.deeplearning4j.eval.Evaluation
 import org.deeplearning4j.models.paragraphvectors.ParagraphVectors
 import org.deeplearning4j.nn.api.OptimizationAlgorithm
 import org.deeplearning4j.nn.conf._
-import org.deeplearning4j.nn.conf.layers.{GravesLSTM, RnnOutputLayer}
+import org.deeplearning4j.nn.conf.layers.{GravesLSTM, OutputLayer, RBM, RnnOutputLayer}
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.deeplearning4j.nn.weights.WeightInit
 import org.deeplearning4j.spark.impl.multilayer.SparkDl4jMultiLayer
@@ -29,6 +28,7 @@ import org.deeplearning4j.text.sentenceiterator.CollectionSentenceIterator
 import org.deeplearning4j.text.tokenization.tokenizer.preprocessor.CommonPreprocessor
 import org.deeplearning4j.text.tokenization.tokenizerfactory.DefaultTokenizerFactory
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator
+import org.nd4j.linalg.lossfunctions.LossFunctions
 import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConversions._
@@ -71,9 +71,9 @@ object ParagraphVector extends SparkOps {
 
   val filteredDataSchema: Schema = new Schema.Builder()
     .addColumnsString("original_text")
-    .addColumnCategorical("bug_severity", severityValues)
-    .addColumnInteger("component_id")
-    .addColumnInteger("product_id")
+    //.addColumnCategorical("bug_severity", severityValues)
+    //.addColumnInteger("component_id")
+    //.addColumnInteger("product_id")
     .addColumnInteger("class")
     .build()
 
@@ -99,8 +99,10 @@ object ParagraphVector extends SparkOps {
       //Let's remove some column we don't need
       //            .filter(new ConditionFilter(new IntegerColumnCondition("class", ConditionOp.GreaterOrEqual, 2)))
       //.filter(new ConditionFilter(new IntegerColumnCondition("component_id", ConditionOp.NotEqual, 128)))
-      .removeAllColumnsExceptFor("text", "bug_severity", "component_id", "product_id", "class")
-      .reorderColumns("text", "bug_severity", "component_id", "product_id", "class")
+      //.removeAllColumnsExceptFor("text", "bug_severity", "component_id", "product_id", "class")
+      //.reorderColumns("text", "bug_severity", "component_id", "product_id", "class")
+      .removeAllColumnsExceptFor("text", "class")
+      .reorderColumns("text", "class")
       .build()
 
     // After executing all of these operations, we have a new and different schema:
@@ -135,8 +137,8 @@ object ParagraphVector extends SparkOps {
 
     val descs = filteredData.collect().map {
       writables =>
-        if (Try(writables.get(2).toInt).isSuccess) components.put(writables.get(2).toInt, writables.get(2).toString)
-        if (Try(writables.get(3).toInt).isSuccess) products.put(writables.get(3).toInt, writables.get(3).toString)
+        //if (Try(writables.get(2).toInt).isSuccess) components.put(writables.get(2).toInt, writables.get(2).toString)
+        //if (Try(writables.get(3).toInt).isSuccess) products.put(writables.get(3).toInt, writables.get(3).toString)
         if (Try(writables.last.toInt).isSuccess) distinctClasses += writables.last.toInt
         writables.get(0).toString
     }
@@ -187,11 +189,11 @@ object ParagraphVector extends SparkOps {
     //            Step 3.a: More transformations
     //=====================================================================
     val numericToCategoricalTransform: TransformProcess = new TransformProcess.Builder(filteredDataSchema)
-      .integerToCategorical("component_id", components)
-      .integerToCategorical("product_id", products)
-      .categoricalToOneHot("bug_severity")
-      .categoricalToOneHot("component_id")
-      .categoricalToOneHot("product_id")
+      //.integerToCategorical("component_id", components)
+      //.integerToCategorical("product_id", products)
+      //.categoricalToOneHot("bug_severity")
+      //.categoricalToOneHot("component_id")
+      //.categoricalToOneHot("product_id")
       .integerToCategorical("class", classes)
       .build()
 
@@ -208,7 +210,7 @@ object ParagraphVector extends SparkOps {
         data().asDouble().map(new DoubleWritable(_)) ++ row.drop(1))
     }
 
-    val featureSpaceSize = paragraphVectors.getLayerSize + components.size() + products.size() + severityValues.size()
+    val featureSpaceSize = paragraphVectors.getLayerSize // + components.size() + products.size() + severityValues.size()
 
     val batchSize = 100
     val averagingFrequency = 5
@@ -216,7 +218,7 @@ object ParagraphVector extends SparkOps {
     val outputNum = possibleLabels
     val iterations = 1000
 
-    val layer1width = 15
+    val layer1width = 50
     val learningRate = 0.0018
     val activation = "softsign"
 
@@ -248,6 +250,7 @@ object ParagraphVector extends SparkOps {
       .layer(0, new GravesLSTM.Builder().name("GravesLSTM")
         .nIn(featureSpaceSize).nOut(layer1width)
         .activation(activation)
+        .dropOut(0.5)
         .build())
       .layer(1, new RnnOutputLayer.Builder().name("RnnOutputLayer")
         .activation(activation_end)
@@ -255,8 +258,25 @@ object ParagraphVector extends SparkOps {
         .build())
       .pretrain(false).backprop(true).build
 
+    val seed = 12345
+
+    val deep_conf = new NeuralNetConfiguration.Builder()
+      .seed(seed)
+      .iterations(iterations)
+      .optimizationAlgo(OptimizationAlgorithm.LINE_GRADIENT_DESCENT)
+      .list()
+      .layer(0, new RBM.Builder().nIn(featureSpaceSize).nOut(1000).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(1, new RBM.Builder().nIn(1000).nOut(1000).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(2, new RBM.Builder().nIn(1000).nOut(1000).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(3, new RBM.Builder().nIn(1000).nOut(1000).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(4, new RBM.Builder().nIn(1000).nOut(1000).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(5, new OutputLayer.Builder(LossFunctions.LossFunction.MSE).activation("sigmoid").nIn(1000).nOut(outputNum).build())
+      .pretrain(true).backprop(true)
+      .build()
+
+
     //run the model
-    val model: MultiLayerNetwork = new MultiLayerNetwork(rnn_conf)
+    val model: MultiLayerNetwork = new MultiLayerNetwork(deep_conf)
 
     val tm = new ParameterAveragingTrainingMaster.Builder(batchSize)
       .averagingFrequency(averagingFrequency)
@@ -268,7 +288,7 @@ object ParagraphVector extends SparkOps {
     val sparkNet = new SparkDl4jMultiLayer(sc, rnn_conf, tm)
 
     //Execute training:
-    val numEpochs = 45
+    val numEpochs = 150
 
     //Perform evaluation (distributed)
     val testData = sc.parallelize(testIterator.toList)
