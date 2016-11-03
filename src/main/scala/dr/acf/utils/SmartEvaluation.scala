@@ -16,32 +16,34 @@ class SmartEvaluation(eval: Evaluation) {
     * @param suppressWarnings whether or not to output warnings related to the evaluation results
     * @return A (multi-line) String with accuracy, precision, recall, f1 score etc
     */
-  def stats(suppressWarnings: Boolean): String = {
+  def stats(suppressWarnings: Boolean, full: Boolean = true): String = {
     var actual: String = null
     var expected: String = null
     val builder: StringBuilder = new StringBuilder().append("\n")
     val warnings: StringBuilder = new StringBuilder
     val classes = eval.getConfusionMatrix.getClasses
     import scala.collection.JavaConversions._
-    for (clazz <- classes) {
-      actual = eval.getClassLabel(clazz)
-      //Output confusion matrix
-      import scala.collection.JavaConversions._
-      for (clazz2 <- classes) {
-        val count: Int = eval.getConfusionMatrix.getCount(clazz, clazz2)
-        if (count != 0) {
-          expected = eval.getClassLabel(clazz2)
-          builder.append(String.format("Examples labeled as %s classified by model as %s: %d times%n", actual, expected, count:Integer))
+    if (full) {
+      for (clazz <- classes) {
+        actual = eval.getClassLabel(clazz)
+        //Output confusion matrix
+        import scala.collection.JavaConversions._
+        for (clazz2 <- classes) {
+          val count: Int = eval.getConfusionMatrix.getCount(clazz, clazz2)
+          if (count != 0) {
+            expected = eval.getClassLabel(clazz2)
+            builder.append(String.format("Examples labeled as %s classified by model as %s: %d times%n", actual, expected, count: Integer))
+          }
+        }
+        //Output possible warnings regarding precision/recall calculation
+        if (!suppressWarnings && eval.truePositives.get(clazz) == 0) {
+          if (eval.falsePositives.get(clazz) == 0) warnings.append(String.format("Warning: class %s was never predicted by the model. This class was excluded from the average precision%n", actual))
+          if (eval.falseNegatives.get(clazz) == 0) warnings.append(String.format("Warning: class %s has never appeared as a true label. This class was excluded from the average recall%n", actual))
         }
       }
-      //Output possible warnings regarding precision/recall calculation
-      if (!suppressWarnings && eval.truePositives.get(clazz) == 0) {
-        if (eval.falsePositives.get(clazz) == 0) warnings.append(String.format("Warning: class %s was never predicted by the model. This class was excluded from the average precision%n", actual))
-        if (eval.falseNegatives.get(clazz) == 0) warnings.append(String.format("Warning: class %s has never appeared as a true label. This class was excluded from the average recall%n", actual))
-      }
+      builder.append("\n")
+      builder.append(warnings)
     }
-    builder.append("\n")
-    builder.append(warnings)
     val df: DecimalFormat = new DecimalFormat("#.####")
     val acc: Double = eval.accuracy
     val prec: Double = eval.precision

@@ -237,6 +237,8 @@ object ParagraphVector extends SparkOps {
       new RecordReaderDataSetIterator(testRecordReader, _testData.length, featureSpaceSize, possibleLabels)
 
     log.info("Build model....")
+    log.info(s"Number of iterations $iterations")
+
     //Set up network configuration
     val rnn_conf: MultiLayerConfiguration = new NeuralNetConfiguration.Builder()
       .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
@@ -257,6 +259,8 @@ object ParagraphVector extends SparkOps {
         .nIn(layer1width).nOut(outputNum)
         .build())
       .pretrain(false).backprop(true).build
+
+    log.info(s"Network configuration ${rnn_conf.toString}")
 
     val seed = 12345
 
@@ -300,11 +304,11 @@ object ParagraphVector extends SparkOps {
 
       val evaluationTrain: SmartEvaluation = new SmartEvaluation(sparkNet.evaluate(trainingData))
       log.info("***** Evaluation TRAIN DATA *****")
-      log.info(evaluationTrain.stats(false))
+      log.info(evaluationTrain.stats(false, false))
 
       val evaluationTest: SmartEvaluation = new SmartEvaluation(sparkNet.evaluate(testData))
       log.info("***** Evaluation TEST DATA *****")
-      log.info(evaluationTest.stats(false))
+      log.info(evaluationTest.stats(false, false))
     }
 
     //Delete the temp training files, now that we are done with them
