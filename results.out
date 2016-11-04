@@ -1,0 +1,5422 @@
++++++++++++++++++++++++++++++++++++++++++++++
+1500 de iteratii, 50 de neuroni
++++++++++++++++++++++++++++++++++++++++++++++
+
+INFO - Input data schema details:
+INFO - Schema():
+idx   name                 type           meta data
+0     "row_id"             Integer        IntegerMetaData(name="row_id",)
+1     "assigned_to"        Integer        IntegerMetaData(name="assigned_to",)
+2     "bug_id"             Integer        IntegerMetaData(name="bug_id",)
+3     "bug_severity"       Categorical    CategoricalMetaData(name="bug_severity",stateNames=["normal","blocker","trivial","major","critical","minor","enhancement"])
+4     "bug_status"         Categorical    CategoricalMetaData(name="bug_status",stateNames=["trivial","CLOSED","critical","minor","RESOLVED","VERIFIED"])
+5     "component_id"       Integer        IntegerMetaData(name="component_id",)
+6     "creation_ts"        Time           TimeMetaData(name="creation_ts",timeZone=Europe/Bucharest)
+7     "delta_ts"           Time           TimeMetaData(name="delta_ts",timeZone=Europe/Bucharest)
+8     "product_id"         Integer        IntegerMetaData(name="product_id",)
+9     "resolution"         Categorical    CategoricalMetaData(name="resolution",stateNames=["FIXED"])
+10    "short_desc"         String         StringMetaData(name="short_desc",)
+11    "original_text"      String         StringMetaData(name="original_text",)
+12    "text"               String         StringMetaData(name="text",)
+13    "class"              Integer        IntegerMetaData(name="class",)
+
+INFO - 
+
+Other information obtainable from schema:
+INFO - Number of columns: 14
+INFO - Column names: [row_id, assigned_to, bug_id, bug_severity, bug_status, component_id, creation_ts, delta_ts, product_id, resolution, short_desc, original_text, text, class]
+INFO - Column types: [Integer, Integer, Integer, Categorical, Categorical, Integer, Time, Time, Integer, Categorical, String, String, String, Integer]
+INFO - 
+
+
+Schema after transforming data:
+INFO - Schema():
+idx   name                type           meta data
+0     "text"              String         StringMetaData(name="text",)
+1     "bug_severity"      Categorical    CategoricalMetaData(name="bug_severity",stateNames=["normal","blocker","trivial","major","critical","minor","enhancement"])
+2     "component_id"      Integer        IntegerMetaData(name="component_id",)
+3     "product_id"        Integer        IntegerMetaData(name="product_id",)
+4     "class"             Integer        IntegerMetaData(name="class",)
+
+INFO - Build Embedded Vectors ....
+INFO - Embedded Vectors OK ....
+INFO - Build model....
+INFO - Number of iterations 1500
+INFO - Network configuration {
+  "backprop" : true,
+  "backpropType" : "Standard",
+  "confs" : [ {
+    "extraArgs" : [ ],
+    "l1ByParam" : { },
+    "l2ByParam" : { },
+    "layer" : {
+      "gravesLSTM" : {
+        "activationFunction" : "softsign",
+        "adamMeanDecay" : "NaN",
+        "adamVarDecay" : "NaN",
+        "biasInit" : 0.0,
+        "biasL1" : 0.0,
+        "biasL2" : 0.0,
+        "biasLearningRate" : 0.0018,
+        "dist" : null,
+        "dropOut" : 0.0,
+        "epsilon" : "NaN",
+        "forgetGateBiasInit" : 1.0,
+        "gradientNormalization" : "ClipElementWiseAbsoluteValue",
+        "gradientNormalizationThreshold" : 1.0,
+        "l1" : 0.0,
+        "l2" : 1.0E-5,
+        "layerName" : "GravesLSTM",
+        "learningRate" : 0.0018,
+        "learningRateSchedule" : null,
+        "momentum" : "NaN",
+        "momentumSchedule" : null,
+        "nin" : 320,
+        "nout" : 50,
+        "rho" : "NaN",
+        "rmsDecay" : 0.95,
+        "updater" : "RMSPROP",
+        "weightInit" : "XAVIER"
+      }
+    },
+    "leakyreluAlpha" : 0.0,
+    "learningRateByParam" : { },
+    "learningRatePolicy" : "None",
+    "lrPolicyDecayRate" : "NaN",
+    "lrPolicyPower" : "NaN",
+    "lrPolicySteps" : "NaN",
+    "maxNumLineSearchIterations" : 5,
+    "miniBatch" : true,
+    "minimize" : true,
+    "numIterations" : 1500,
+    "optimizationAlgo" : "STOCHASTIC_GRADIENT_DESCENT",
+    "seed" : 1478164084020,
+    "stepFunction" : null,
+    "useDropConnect" : false,
+    "useRegularization" : true,
+    "variables" : [ ]
+  }, {
+    "extraArgs" : [ ],
+    "l1ByParam" : { },
+    "l2ByParam" : { },
+    "layer" : {
+      "rnnoutput" : {
+        "activationFunction" : "softmax",
+        "adamMeanDecay" : "NaN",
+        "adamVarDecay" : "NaN",
+        "biasInit" : 0.0,
+        "biasL1" : 0.0,
+        "biasL2" : 0.0,
+        "biasLearningRate" : 0.0018,
+        "customLossFunction" : null,
+        "dist" : null,
+        "dropOut" : 0.0,
+        "epsilon" : "NaN",
+        "gradientNormalization" : "ClipElementWiseAbsoluteValue",
+        "gradientNormalizationThreshold" : 1.0,
+        "l1" : 0.0,
+        "l2" : 1.0E-5,
+        "layerName" : "RnnOutputLayer",
+        "learningRate" : 0.0018,
+        "learningRateSchedule" : null,
+        "lossFn" : {
+          "MCXENT" : { }
+        },
+        "lossFunction" : "MCXENT",
+        "momentum" : "NaN",
+        "momentumSchedule" : null,
+        "nin" : 50,
+        "nout" : 28,
+        "rho" : "NaN",
+        "rmsDecay" : 0.95,
+        "updater" : "RMSPROP",
+        "weightInit" : "XAVIER"
+      }
+    },
+    "leakyreluAlpha" : 0.0,
+    "learningRateByParam" : { },
+    "learningRatePolicy" : "None",
+    "lrPolicyDecayRate" : "NaN",
+    "lrPolicyPower" : "NaN",
+    "lrPolicySteps" : "NaN",
+    "maxNumLineSearchIterations" : 5,
+    "miniBatch" : true,
+    "minimize" : true,
+    "numIterations" : 1500,
+    "optimizationAlgo" : "STOCHASTIC_GRADIENT_DESCENT",
+    "seed" : 1478164084020,
+    "stepFunction" : null,
+    "useDropConnect" : false,
+    "useRegularization" : true,
+    "variables" : [ ]
+  } ],
+  "inputPreProcessors" : { },
+  "pretrain" : false,
+  "tbpttBackLength" : 20,
+  "tbpttFwdLength" : 20
+}
+INFO - Completed Epoch 1
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.6203
+ Precision: 0.7393
+ Recall:    0.5124
+ F1 Score:  0.6053
+ WPrecision: 0.702
+ WRecall:    0.6203
+ WF1 Score:  0.6595
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.5623
+ Precision: 0.6982
+ Recall:    0.4914
+ F1 Score:  0.5768
+ WPrecision: 0.7067
+ WRecall:    0.5623
+ WF1 Score:  0.6174
+========================================================================
+INFO - Completed Epoch 2
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.7061
+ Precision: 0.7705
+ Recall:    0.6107
+ F1 Score:  0.6813
+ WPrecision: 0.7605
+ WRecall:    0.7061
+ WF1 Score:  0.7385
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.6638
+ Precision: 0.7798
+ Recall:    0.5927
+ F1 Score:  0.6735
+ WPrecision: 0.7941
+ WRecall:    0.6638
+ WF1 Score:  0.6852
+========================================================================
+INFO - Completed Epoch 3
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.7919
+ Precision: 0.8278
+ Recall:    0.737
+ F1 Score:  0.7798
+ WPrecision: 0.8391
+ WRecall:    0.7919
+ WF1 Score:  0.7986
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8174
+ Precision: 0.8576
+ Recall:    0.7407
+ F1 Score:  0.7949
+ WPrecision: 0.8705
+ WRecall:    0.8174
+ WF1 Score:  0.8319
+========================================================================
+INFO - Completed Epoch 4
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8445
+ Precision: 0.8724
+ Recall:    0.8196
+ F1 Score:  0.8452
+ WPrecision: 0.8687
+ WRecall:    0.8445
+ WF1 Score:  0.8547
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8609
+ Precision: 0.8844
+ Recall:    0.8246
+ F1 Score:  0.8535
+ WPrecision: 0.8841
+ WRecall:    0.8609
+ WF1 Score:  0.8637
+========================================================================
+INFO - Completed Epoch 5
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.869
+ Precision: 0.8929
+ Recall:    0.8559
+ F1 Score:  0.874
+ WPrecision: 0.8875
+ WRecall:    0.869
+ WF1 Score:  0.8609
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.858
+ Precision: 0.8644
+ Recall:    0.8271
+ F1 Score:  0.8453
+ WPrecision: 0.8776
+ WRecall:    0.858
+ WF1 Score:  0.8629
+========================================================================
+INFO - Completed Epoch 6
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8784
+ Precision: 0.8984
+ Recall:    0.8692
+ F1 Score:  0.8835
+ WPrecision: 0.8935
+ WRecall:    0.8784
+ WF1 Score:  0.8712
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8609
+ Precision: 0.8627
+ Recall:    0.8289
+ F1 Score:  0.8455
+ WPrecision: 0.8794
+ WRecall:    0.8609
+ WF1 Score:  0.8666
+========================================================================
+INFO - Completed Epoch 7
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8845
+ Precision: 0.9017
+ Recall:    0.8759
+ F1 Score:  0.8886
+ WPrecision: 0.897
+ WRecall:    0.8845
+ WF1 Score:  0.8793
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8701
+ Recall:    0.8395
+ F1 Score:  0.8545
+ WPrecision: 0.8845
+ WRecall:    0.8667
+ WF1 Score:  0.865
+========================================================================
+INFO - Completed Epoch 8
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8919
+ Precision: 0.9079
+ Recall:    0.8855
+ F1 Score:  0.8966
+ WPrecision: 0.903
+ WRecall:    0.8919
+ WF1 Score:  0.8886
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8638
+ Precision: 0.8689
+ Recall:    0.8369
+ F1 Score:  0.8526
+ WPrecision: 0.883
+ WRecall:    0.8638
+ WF1 Score:  0.8623
+========================================================================
+INFO - Completed Epoch 9
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8942
+ Precision: 0.9067
+ Recall:    0.888
+ F1 Score:  0.8972
+ WPrecision: 0.9023
+ WRecall:    0.8942
+ WF1 Score:  0.8915
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8638
+ Precision: 0.8696
+ Recall:    0.8348
+ F1 Score:  0.8519
+ WPrecision: 0.8799
+ WRecall:    0.8638
+ WF1 Score:  0.8615
+========================================================================
+INFO - Completed Epoch 10
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8977
+ Precision: 0.9085
+ Recall:    0.8929
+ F1 Score:  0.9006
+ WPrecision: 0.904
+ WRecall:    0.8977
+ WF1 Score:  0.8958
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8713
+ Recall:    0.8367
+ F1 Score:  0.8537
+ WPrecision: 0.8839
+ WRecall:    0.8667
+ WF1 Score:  0.8654
+========================================================================
+INFO - Completed Epoch 11
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8997
+ Precision: 0.909
+ Recall:    0.8952
+ F1 Score:  0.9021
+ WPrecision: 0.9053
+ WRecall:    0.8997
+ WF1 Score:  0.8979
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8551
+ Precision: 0.8605
+ Recall:    0.8264
+ F1 Score:  0.8431
+ WPrecision: 0.8706
+ WRecall:    0.8551
+ WF1 Score:  0.8526
+========================================================================
+INFO - Completed Epoch 12
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9006
+ Precision: 0.9088
+ Recall:    0.896
+ F1 Score:  0.9023
+ WPrecision: 0.9059
+ WRecall:    0.9006
+ WF1 Score:  0.899
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8522
+ Precision: 0.8583
+ Recall:    0.8245
+ F1 Score:  0.8411
+ WPrecision: 0.8679
+ WRecall:    0.8522
+ WF1 Score:  0.8494
+========================================================================
+INFO - Completed Epoch 13
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9039
+ Precision: 0.9126
+ Recall:    0.8992
+ F1 Score:  0.9059
+ WPrecision: 0.9093
+ WRecall:    0.9039
+ WF1 Score:  0.9025
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8551
+ Precision: 0.8597
+ Recall:    0.8273
+ F1 Score:  0.8432
+ WPrecision: 0.8705
+ WRecall:    0.8551
+ WF1 Score:  0.8524
+========================================================================
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++
+add dropout  0.2
+++++++++++++++++++++++++++++++++++++++++++++++++++++
+INFO - Input data schema details:
+INFO - Schema():
+idx   name                 type           meta data
+0     "row_id"             Integer        IntegerMetaData(name="row_id",)
+1     "assigned_to"        Integer        IntegerMetaData(name="assigned_to",)
+2     "bug_id"             Integer        IntegerMetaData(name="bug_id",)
+3     "bug_severity"       Categorical    CategoricalMetaData(name="bug_severity",stateNames=["normal","blocker","trivial","major","critical","minor","enhancement"])
+4     "bug_status"         Categorical    CategoricalMetaData(name="bug_status",stateNames=["trivial","CLOSED","critical","minor","RESOLVED","VERIFIED"])
+5     "component_id"       Integer        IntegerMetaData(name="component_id",)
+6     "creation_ts"        Time           TimeMetaData(name="creation_ts",timeZone=Europe/Bucharest)
+7     "delta_ts"           Time           TimeMetaData(name="delta_ts",timeZone=Europe/Bucharest)
+8     "product_id"         Integer        IntegerMetaData(name="product_id",)
+9     "resolution"         Categorical    CategoricalMetaData(name="resolution",stateNames=["FIXED"])
+10    "short_desc"         String         StringMetaData(name="short_desc",)
+11    "original_text"      String         StringMetaData(name="original_text",)
+12    "text"               String         StringMetaData(name="text",)
+13    "class"              Integer        IntegerMetaData(name="class",)
+
+INFO - 
+
+Other information obtainable from schema:
+INFO - Number of columns: 14
+INFO - Column names: [row_id, assigned_to, bug_id, bug_severity, bug_status, component_id, creation_ts, delta_ts, product_id, resolution, short_desc, original_text, text, class]
+INFO - Column types: [Integer, Integer, Integer, Categorical, Categorical, Integer, Time, Time, Integer, Categorical, String, String, String, Integer]
+INFO - 
+
+
+Schema after transforming data:
+INFO - Schema():
+idx   name                type           meta data
+0     "text"              String         StringMetaData(name="text",)
+1     "bug_severity"      Categorical    CategoricalMetaData(name="bug_severity",stateNames=["normal","blocker","trivial","major","critical","minor","enhancement"])
+2     "component_id"      Integer        IntegerMetaData(name="component_id",)
+3     "product_id"        Integer        IntegerMetaData(name="product_id",)
+4     "class"             Integer        IntegerMetaData(name="class",)
+
+INFO - Build Embedded Vectors ....
+INFO - Embedded Vectors OK ....
+INFO - Build model....
+INFO - Number of iterations 1500
+INFO - Network configuration {
+  "backprop" : true,
+  "backpropType" : "Standard",
+  "confs" : [ {
+    "extraArgs" : [ ],
+    "l1ByParam" : { },
+    "l2ByParam" : { },
+    "layer" : {
+      "gravesLSTM" : {
+        "activationFunction" : "softsign",
+        "adamMeanDecay" : "NaN",
+        "adamVarDecay" : "NaN",
+        "biasInit" : 0.0,
+        "biasL1" : 0.0,
+        "biasL2" : 0.0,
+        "biasLearningRate" : 0.0018,
+        "dist" : null,
+        "dropOut" : 0.2,
+        "epsilon" : "NaN",
+        "forgetGateBiasInit" : 1.0,
+        "gradientNormalization" : "ClipElementWiseAbsoluteValue",
+        "gradientNormalizationThreshold" : 1.0,
+        "l1" : 0.0,
+        "l2" : 1.0E-5,
+        "layerName" : "GravesLSTM",
+        "learningRate" : 0.0018,
+        "learningRateSchedule" : null,
+        "momentum" : "NaN",
+        "momentumSchedule" : null,
+        "nin" : 320,
+        "nout" : 50,
+        "rho" : "NaN",
+        "rmsDecay" : 0.95,
+        "updater" : "RMSPROP",
+        "weightInit" : "XAVIER"
+      }
+    },
+    "leakyreluAlpha" : 0.0,
+    "learningRateByParam" : { },
+    "learningRatePolicy" : "None",
+    "lrPolicyDecayRate" : "NaN",
+    "lrPolicyPower" : "NaN",
+    "lrPolicySteps" : "NaN",
+    "maxNumLineSearchIterations" : 5,
+    "miniBatch" : true,
+    "minimize" : true,
+    "numIterations" : 1500,
+    "optimizationAlgo" : "STOCHASTIC_GRADIENT_DESCENT",
+    "seed" : 1478172619044,
+    "stepFunction" : null,
+    "useDropConnect" : false,
+    "useRegularization" : true,
+    "variables" : [ ]
+  }, {
+    "extraArgs" : [ ],
+    "l1ByParam" : { },
+    "l2ByParam" : { },
+    "layer" : {
+      "rnnoutput" : {
+        "activationFunction" : "softmax",
+        "adamMeanDecay" : "NaN",
+        "adamVarDecay" : "NaN",
+        "biasInit" : 0.0,
+        "biasL1" : 0.0,
+        "biasL2" : 0.0,
+        "biasLearningRate" : 0.0018,
+        "customLossFunction" : null,
+        "dist" : null,
+        "dropOut" : 0.2,
+        "epsilon" : "NaN",
+        "gradientNormalization" : "ClipElementWiseAbsoluteValue",
+        "gradientNormalizationThreshold" : 1.0,
+        "l1" : 0.0,
+        "l2" : 1.0E-5,
+        "layerName" : "RnnOutputLayer",
+        "learningRate" : 0.0018,
+        "learningRateSchedule" : null,
+        "lossFn" : {
+          "MCXENT" : { }
+        },
+        "lossFunction" : "MCXENT",
+        "momentum" : "NaN",
+        "momentumSchedule" : null,
+        "nin" : 50,
+        "nout" : 28,
+        "rho" : "NaN",
+        "rmsDecay" : 0.95,
+        "updater" : "RMSPROP",
+        "weightInit" : "XAVIER"
+      }
+    },
+    "leakyreluAlpha" : 0.0,
+    "learningRateByParam" : { },
+    "learningRatePolicy" : "None",
+    "lrPolicyDecayRate" : "NaN",
+    "lrPolicyPower" : "NaN",
+    "lrPolicySteps" : "NaN",
+    "maxNumLineSearchIterations" : 5,
+    "miniBatch" : true,
+    "minimize" : true,
+    "numIterations" : 1500,
+    "optimizationAlgo" : "STOCHASTIC_GRADIENT_DESCENT",
+    "seed" : 1478172619044,
+    "stepFunction" : null,
+    "useDropConnect" : false,
+    "useRegularization" : true,
+    "variables" : [ ]
+  } ],
+  "inputPreProcessors" : { },
+  "pretrain" : false,
+  "tbpttBackLength" : 20,
+  "tbpttFwdLength" : 20
+}
+INFO - Completed Epoch 1
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.6052
+ Precision: 0.7195
+ Recall:    0.4961
+ F1 Score:  0.5873
+ WPrecision: 0.679
+ WRecall:    0.6052
+ WF1 Score:  0.6908
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.542
+ Precision: 0.6723
+ Recall:    0.4517
+ F1 Score:  0.5404
+ WPrecision: 0.6958
+ WRecall:    0.542
+ WF1 Score:  0.6179
+========================================================================
+INFO - Completed Epoch 2
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.6813
+ Precision: 0.8068
+ Recall:    0.5775
+ F1 Score:  0.6732
+ WPrecision: 0.7709
+ WRecall:    0.6813
+ WF1 Score:  0.6984
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.6203
+ Precision: 0.7394
+ Recall:    0.5544
+ F1 Score:  0.6337
+ WPrecision: 0.7552
+ WRecall:    0.6203
+ WF1 Score:  0.6489
+========================================================================
+INFO - Completed Epoch 3
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.721
+ Precision: 0.8176
+ Recall:    0.6294
+ F1 Score:  0.7112
+ WPrecision: 0.7983
+ WRecall:    0.721
+ WF1 Score:  0.7596
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.6754
+ Precision: 0.7966
+ Recall:    0.6163
+ F1 Score:  0.695
+ WPrecision: 0.8098
+ WRecall:    0.6754
+ WF1 Score:  0.7019
+========================================================================
+INFO - Completed Epoch 4
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.7535
+ Precision: 0.8488
+ Recall:    0.6761
+ F1 Score:  0.7527
+ WPrecision: 0.8361
+ WRecall:    0.7535
+ WF1 Score:  0.7603
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.7362
+ Precision: 0.8155
+ Recall:    0.6687
+ F1 Score:  0.7349
+ WPrecision: 0.8263
+ WRecall:    0.7362
+ WF1 Score:  0.7844
+========================================================================
+INFO - Completed Epoch 5
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.7797
+ Precision: 0.8571
+ Recall:    0.7149
+ F1 Score:  0.7796
+ WPrecision: 0.8485
+ WRecall:    0.7797
+ WF1 Score:  0.7942
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.7768
+ Precision: 0.8302
+ Recall:    0.7027
+ F1 Score:  0.7612
+ WPrecision: 0.8384
+ WRecall:    0.7768
+ WF1 Score:  0.8344
+========================================================================
+INFO - Completed Epoch 6
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8042
+ Precision: 0.8698
+ Recall:    0.7534
+ F1 Score:  0.8075
+ WPrecision: 0.8616
+ WRecall:    0.8042
+ WF1 Score:  0.8099
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8029
+ Precision: 0.8448
+ Recall:    0.7181
+ F1 Score:  0.7763
+ WPrecision: 0.8603
+ WRecall:    0.8029
+ WF1 Score:  0.8137
+========================================================================
+INFO - Completed Epoch 7
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8229
+ Precision: 0.8723
+ Recall:    0.7823
+ F1 Score:  0.8249
+ WPrecision: 0.8665
+ WRecall:    0.8229
+ WF1 Score:  0.8246
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8319
+ Precision: 0.8716
+ Recall:    0.7638
+ F1 Score:  0.8142
+ WPrecision: 0.8753
+ WRecall:    0.8319
+ WF1 Score:  0.8295
+========================================================================
+INFO - Completed Epoch 8
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.839
+ Precision: 0.8766
+ Recall:    0.8058
+ F1 Score:  0.8397
+ WPrecision: 0.8717
+ WRecall:    0.839
+ WF1 Score:  0.8467
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8551
+ Precision: 0.8847
+ Recall:    0.8026
+ F1 Score:  0.8416
+ WPrecision: 0.8809
+ WRecall:    0.8551
+ WF1 Score:  0.8581
+========================================================================
+INFO - Completed Epoch 9
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8461
+ Precision: 0.8737
+ Recall:    0.8164
+ F1 Score:  0.8441
+ WPrecision: 0.8713
+ WRecall:    0.8461
+ WF1 Score:  0.8557
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8609
+ Precision: 0.8912
+ Recall:    0.8226
+ F1 Score:  0.8555
+ WPrecision: 0.8866
+ WRecall:    0.8609
+ WF1 Score:  0.8638
+========================================================================
+INFO - Completed Epoch 10
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8587
+ Precision: 0.8849
+ Recall:    0.8366
+ F1 Score:  0.8601
+ WPrecision: 0.8791
+ WRecall:    0.8587
+ WF1 Score:  0.8705
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8638
+ Precision: 0.9072
+ Recall:    0.8313
+ F1 Score:  0.8676
+ WPrecision: 0.8862
+ WRecall:    0.8638
+ WF1 Score:  0.8673
+========================================================================
+INFO - Completed Epoch 11
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8642
+ Precision: 0.8882
+ Recall:    0.8449
+ F1 Score:  0.866
+ WPrecision: 0.882
+ WRecall:    0.8642
+ WF1 Score:  0.8765
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8638
+ Precision: 0.9072
+ Recall:    0.8301
+ F1 Score:  0.8669
+ WPrecision: 0.8857
+ WRecall:    0.8638
+ WF1 Score:  0.8666
+========================================================================
+INFO - Completed Epoch 12
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8694
+ Precision: 0.8933
+ Recall:    0.8541
+ F1 Score:  0.8732
+ WPrecision: 0.8855
+ WRecall:    0.8694
+ WF1 Score:  0.8822
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.858
+ Precision: 0.8758
+ Recall:    0.8257
+ F1 Score:  0.85
+ WPrecision: 0.8799
+ WRecall:    0.858
+ WF1 Score:  0.8614
+========================================================================
+
+
++++++++++++++++++++++++++++++++++++++
+set dropout to 0.5
+++++++++++++++++++++++++++++++++++++
+
+INFO - Input data schema details:
+INFO - Schema():
+idx   name                 type           meta data
+0     "row_id"             Integer        IntegerMetaData(name="row_id",)
+1     "assigned_to"        Integer        IntegerMetaData(name="assigned_to",)
+2     "bug_id"             Integer        IntegerMetaData(name="bug_id",)
+3     "bug_severity"       Categorical    CategoricalMetaData(name="bug_severity",stateNames=["normal","blocker","trivial","major","critical","minor","enhancement"])
+4     "bug_status"         Categorical    CategoricalMetaData(name="bug_status",stateNames=["trivial","CLOSED","critical","minor","RESOLVED","VERIFIED"])
+5     "component_id"       Integer        IntegerMetaData(name="component_id",)
+6     "creation_ts"        Time           TimeMetaData(name="creation_ts",timeZone=Europe/Bucharest)
+7     "delta_ts"           Time           TimeMetaData(name="delta_ts",timeZone=Europe/Bucharest)
+8     "product_id"         Integer        IntegerMetaData(name="product_id",)
+9     "resolution"         Categorical    CategoricalMetaData(name="resolution",stateNames=["FIXED"])
+10    "short_desc"         String         StringMetaData(name="short_desc",)
+11    "original_text"      String         StringMetaData(name="original_text",)
+12    "text"               String         StringMetaData(name="text",)
+13    "class"              Integer        IntegerMetaData(name="class",)
+
+INFO - 
+
+Other information obtainable from schema:
+INFO - Number of columns: 14
+INFO - Column names: [row_id, assigned_to, bug_id, bug_severity, bug_status, component_id, creation_ts, delta_ts, product_id, resolution, short_desc, original_text, text, class]
+INFO - Column types: [Integer, Integer, Integer, Categorical, Categorical, Integer, Time, Time, Integer, Categorical, String, String, String, Integer]
+INFO - 
+
+
+Schema after transforming data:
+INFO - Schema():
+idx   name                type           meta data
+0     "text"              String         StringMetaData(name="text",)
+1     "bug_severity"      Categorical    CategoricalMetaData(name="bug_severity",stateNames=["normal","blocker","trivial","major","critical","minor","enhancement"])
+2     "component_id"      Integer        IntegerMetaData(name="component_id",)
+3     "product_id"        Integer        IntegerMetaData(name="product_id",)
+4     "class"             Integer        IntegerMetaData(name="class",)
+
+INFO - Build Embedded Vectors ....
+INFO - Embedded Vectors OK ....
+INFO - Build model....
+INFO - Number of iterations 1500
+INFO - Network configuration {
+  "backprop" : true,
+  "backpropType" : "Standard",
+  "confs" : [ {
+    "extraArgs" : [ ],
+    "l1ByParam" : { },
+    "l2ByParam" : { },
+    "layer" : {
+      "gravesLSTM" : {
+        "activationFunction" : "softsign",
+        "adamMeanDecay" : "NaN",
+        "adamVarDecay" : "NaN",
+        "biasInit" : 0.0,
+        "biasL1" : 0.0,
+        "biasL2" : 0.0,
+        "biasLearningRate" : 0.0018,
+        "dist" : null,
+        "dropOut" : 0.5,
+        "epsilon" : "NaN",
+        "forgetGateBiasInit" : 1.0,
+        "gradientNormalization" : "ClipElementWiseAbsoluteValue",
+        "gradientNormalizationThreshold" : 1.0,
+        "l1" : 0.0,
+        "l2" : 1.0E-5,
+        "layerName" : "GravesLSTM",
+        "learningRate" : 0.0018,
+        "learningRateSchedule" : null,
+        "momentum" : "NaN",
+        "momentumSchedule" : null,
+        "nin" : 320,
+        "nout" : 50,
+        "rho" : "NaN",
+        "rmsDecay" : 0.95,
+        "updater" : "RMSPROP",
+        "weightInit" : "XAVIER"
+      }
+    },
+    "leakyreluAlpha" : 0.0,
+    "learningRateByParam" : { },
+    "learningRatePolicy" : "None",
+    "lrPolicyDecayRate" : "NaN",
+    "lrPolicyPower" : "NaN",
+    "lrPolicySteps" : "NaN",
+    "maxNumLineSearchIterations" : 5,
+    "miniBatch" : true,
+    "minimize" : true,
+    "numIterations" : 1500,
+    "optimizationAlgo" : "STOCHASTIC_GRADIENT_DESCENT",
+    "seed" : 1478177637457,
+    "stepFunction" : null,
+    "useDropConnect" : false,
+    "useRegularization" : true,
+    "variables" : [ ]
+  }, {
+    "extraArgs" : [ ],
+    "l1ByParam" : { },
+    "l2ByParam" : { },
+    "layer" : {
+      "rnnoutput" : {
+        "activationFunction" : "softmax",
+        "adamMeanDecay" : "NaN",
+        "adamVarDecay" : "NaN",
+        "biasInit" : 0.0,
+        "biasL1" : 0.0,
+        "biasL2" : 0.0,
+        "biasLearningRate" : 0.0018,
+        "customLossFunction" : null,
+        "dist" : null,
+        "dropOut" : 0.5,
+        "epsilon" : "NaN",
+        "gradientNormalization" : "ClipElementWiseAbsoluteValue",
+        "gradientNormalizationThreshold" : 1.0,
+        "l1" : 0.0,
+        "l2" : 1.0E-5,
+        "layerName" : "RnnOutputLayer",
+        "learningRate" : 0.0018,
+        "learningRateSchedule" : null,
+        "lossFn" : {
+          "MCXENT" : { }
+        },
+        "lossFunction" : "MCXENT",
+        "momentum" : "NaN",
+        "momentumSchedule" : null,
+        "nin" : 50,
+        "nout" : 28,
+        "rho" : "NaN",
+        "rmsDecay" : 0.95,
+        "updater" : "RMSPROP",
+        "weightInit" : "XAVIER"
+      }
+    },
+    "leakyreluAlpha" : 0.0,
+    "learningRateByParam" : { },
+    "learningRatePolicy" : "None",
+    "lrPolicyDecayRate" : "NaN",
+    "lrPolicyPower" : "NaN",
+    "lrPolicySteps" : "NaN",
+    "maxNumLineSearchIterations" : 5,
+    "miniBatch" : true,
+    "minimize" : true,
+    "numIterations" : 1500,
+    "optimizationAlgo" : "STOCHASTIC_GRADIENT_DESCENT",
+    "seed" : 1478177637457,
+    "stepFunction" : null,
+    "useDropConnect" : false,
+    "useRegularization" : true,
+    "variables" : [ ]
+  } ],
+  "inputPreProcessors" : { },
+  "pretrain" : false,
+  "tbpttBackLength" : 20,
+  "tbpttFwdLength" : 20
+}
+INFO - Completed Epoch 1
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.6174
+ Precision: 0.7237
+ Recall:    0.5089
+ F1 Score:  0.5975
+ WPrecision: 0.694
+ WRecall:    0.6174
+ WF1 Score:  0.6707
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.5565
+ Precision: 0.6938
+ Recall:    0.4836
+ F1 Score:  0.57
+ WPrecision: 0.7103
+ WRecall:    0.5565
+ WF1 Score:  0.6311
+========================================================================
+INFO - Completed Epoch 2
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.6974
+ Precision: 0.7726
+ Recall:    0.6003
+ F1 Score:  0.6756
+ WPrecision: 0.7575
+ WRecall:    0.6974
+ WF1 Score:  0.724
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.6406
+ Precision: 0.7676
+ Recall:    0.5739
+ F1 Score:  0.6568
+ WPrecision: 0.7816
+ WRecall:    0.6406
+ WF1 Score:  0.6535
+========================================================================
+INFO - Completed Epoch 3
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.7603
+ Precision: 0.8528
+ Recall:    0.6861
+ F1 Score:  0.7604
+ WPrecision: 0.8397
+ WRecall:    0.7603
+ WF1 Score:  0.7524
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.742
+ Precision: 0.8119
+ Recall:    0.6749
+ F1 Score:  0.737
+ WPrecision: 0.8228
+ WRecall:    0.742
+ WF1 Score:  0.7897
+========================================================================
+INFO - Completed Epoch 4
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8135
+ Precision: 0.8671
+ Recall:    0.7702
+ F1 Score:  0.8158
+ WPrecision: 0.8596
+ WRecall:    0.8135
+ WF1 Score:  0.8262
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8377
+ Precision: 0.8714
+ Recall:    0.7766
+ F1 Score:  0.8213
+ WPrecision: 0.8779
+ WRecall:    0.8377
+ WF1 Score:  0.8506
+========================================================================
+INFO - Completed Epoch 5
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8439
+ Precision: 0.8728
+ Recall:    0.8163
+ F1 Score:  0.8436
+ WPrecision: 0.87
+ WRecall:    0.8439
+ WF1 Score:  0.8536
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8551
+ Precision: 0.8744
+ Recall:    0.8175
+ F1 Score:  0.845
+ WPrecision: 0.881
+ WRecall:    0.8551
+ WF1 Score:  0.8585
+========================================================================
+INFO - Completed Epoch 6
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8629
+ Precision: 0.8838
+ Recall:    0.8466
+ F1 Score:  0.8648
+ WPrecision: 0.8807
+ WRecall:    0.8629
+ WF1 Score:  0.8759
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8638
+ Precision: 0.8922
+ Recall:    0.8326
+ F1 Score:  0.8614
+ WPrecision: 0.8885
+ WRecall:    0.8638
+ WF1 Score:  0.8685
+========================================================================
+INFO - Completed Epoch 7
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8729
+ Precision: 0.891
+ Recall:    0.8599
+ F1 Score:  0.8751
+ WPrecision: 0.8874
+ WRecall:    0.8729
+ WF1 Score:  0.886
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8638
+ Precision: 0.869
+ Recall:    0.8319
+ F1 Score:  0.8501
+ WPrecision: 0.8819
+ WRecall:    0.8638
+ WF1 Score:  0.8696
+========================================================================
+INFO - Completed Epoch 8
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8797
+ Precision: 0.9006
+ Recall:    0.87
+ F1 Score:  0.885
+ WPrecision: 0.8945
+ WRecall:    0.8797
+ WF1 Score:  0.8723
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8638
+ Precision: 0.868
+ Recall:    0.8289
+ F1 Score:  0.848
+ WPrecision: 0.8813
+ WRecall:    0.8638
+ WF1 Score:  0.8696
+========================================================================
+INFO - Completed Epoch 9
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8839
+ Precision: 0.9036
+ Recall:    0.8759
+ F1 Score:  0.8896
+ WPrecision: 0.8972
+ WRecall:    0.8839
+ WF1 Score:  0.8778
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8638
+ Precision: 0.8661
+ Recall:    0.8289
+ F1 Score:  0.8471
+ WPrecision: 0.8817
+ WRecall:    0.8638
+ WF1 Score:  0.8696
+========================================================================
+INFO - Completed Epoch 10
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8913
+ Precision: 0.9061
+ Recall:    0.8854
+ F1 Score:  0.8956
+ WPrecision: 0.9002
+ WRecall:    0.8913
+ WF1 Score:  0.8878
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8609
+ Precision: 0.8621
+ Recall:    0.8275
+ F1 Score:  0.8444
+ WPrecision: 0.8804
+ WRecall:    0.8609
+ WF1 Score:  0.8672
+========================================================================
+INFO - Completed Epoch 11
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8952
+ Precision: 0.9094
+ Recall:    0.8898
+ F1 Score:  0.8995
+ WPrecision: 0.9038
+ WRecall:    0.8952
+ WF1 Score:  0.892
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8609
+ Precision: 0.8618
+ Recall:    0.8335
+ F1 Score:  0.8474
+ WPrecision: 0.8815
+ WRecall:    0.8609
+ WF1 Score:  0.8603
+========================================================================
+INFO - Completed Epoch 12
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8971
+ Precision: 0.9112
+ Recall:    0.8922
+ F1 Score:  0.9016
+ WPrecision: 0.9056
+ WRecall:    0.8971
+ WF1 Score:  0.8943
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.858
+ Precision: 0.8594
+ Recall:    0.8305
+ F1 Score:  0.8447
+ WPrecision: 0.8788
+ WRecall:    0.858
+ WF1 Score:  0.8572
+========================================================================
+INFO - Completed Epoch 13
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9003
+ Precision: 0.9119
+ Recall:    0.8966
+ F1 Score:  0.9042
+ WPrecision: 0.907
+ WRecall:    0.9003
+ WF1 Score:  0.8987
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.858
+ Precision: 0.8596
+ Recall:    0.8305
+ F1 Score:  0.8448
+ WPrecision: 0.8804
+ WRecall:    0.858
+ WF1 Score:  0.858
+========================================================================
+INFO - Completed Epoch 14
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9042
+ Precision: 0.9147
+ Recall:    0.901
+ F1 Score:  0.9078
+ WPrecision: 0.9103
+ WRecall:    0.9042
+ WF1 Score:  0.9027
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.858
+ Precision: 0.8596
+ Recall:    0.8305
+ F1 Score:  0.8448
+ WPrecision: 0.8804
+ WRecall:    0.858
+ WF1 Score:  0.858
+========================================================================
+INFO - Completed Epoch 15
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9061
+ Precision: 0.9168
+ Recall:    0.9027
+ F1 Score:  0.9097
+ WPrecision: 0.9121
+ WRecall:    0.9061
+ WF1 Score:  0.9048
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8609
+ Precision: 0.8611
+ Recall:    0.8332
+ F1 Score:  0.8469
+ WPrecision: 0.8817
+ WRecall:    0.8609
+ WF1 Score:  0.8606
+========================================================================
+INFO - Completed Epoch 16
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9094
+ Precision: 0.9194
+ Recall:    0.906
+ F1 Score:  0.9127
+ WPrecision: 0.9148
+ WRecall:    0.9094
+ WF1 Score:  0.9084
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8638
+ Precision: 0.8625
+ Recall:    0.8349
+ F1 Score:  0.8485
+ WPrecision: 0.8847
+ WRecall:    0.8638
+ WF1 Score:  0.8636
+========================================================================
+INFO - Completed Epoch 17
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9097
+ Precision: 0.9187
+ Recall:    0.9061
+ F1 Score:  0.9123
+ WPrecision: 0.9147
+ WRecall:    0.9097
+ WF1 Score:  0.9088
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8715
+ Recall:    0.8527
+ F1 Score:  0.862
+ WPrecision: 0.889
+ WRecall:    0.8667
+ WF1 Score:  0.8664
+========================================================================
+INFO - Completed Epoch 18
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9116
+ Precision: 0.9201
+ Recall:    0.9081
+ F1 Score:  0.9141
+ WPrecision: 0.9164
+ WRecall:    0.9116
+ WF1 Score:  0.9108
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8715
+ Recall:    0.8527
+ F1 Score:  0.862
+ WPrecision: 0.889
+ WRecall:    0.8667
+ WF1 Score:  0.8664
+========================================================================
+INFO - Completed Epoch 19
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9132
+ Precision: 0.9212
+ Recall:    0.9101
+ F1 Score:  0.9156
+ WPrecision: 0.9177
+ WRecall:    0.9132
+ WF1 Score:  0.9126
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.873
+ Recall:    0.8543
+ F1 Score:  0.8635
+ WPrecision: 0.8921
+ WRecall:    0.8696
+ WF1 Score:  0.8694
+========================================================================
+INFO - Completed Epoch 20
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9155
+ Precision: 0.923
+ Recall:    0.913
+ F1 Score:  0.918
+ WPrecision: 0.92
+ WRecall:    0.9155
+ WF1 Score:  0.9149
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.873
+ Recall:    0.8543
+ F1 Score:  0.8635
+ WPrecision: 0.8921
+ WRecall:    0.8696
+ WF1 Score:  0.8694
+========================================================================
+INFO - Completed Epoch 21
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9161
+ Precision: 0.9232
+ Recall:    0.9138
+ F1 Score:  0.9185
+ WPrecision: 0.9204
+ WRecall:    0.9161
+ WF1 Score:  0.9157
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8751
+ Recall:    0.8543
+ F1 Score:  0.8646
+ WPrecision: 0.8926
+ WRecall:    0.8696
+ WF1 Score:  0.8695
+========================================================================
+INFO - Completed Epoch 22
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9171
+ Precision: 0.9238
+ Recall:    0.9149
+ F1 Score:  0.9193
+ WPrecision: 0.9211
+ WRecall:    0.9171
+ WF1 Score:  0.9167
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8751
+ Recall:    0.8543
+ F1 Score:  0.8646
+ WPrecision: 0.8926
+ WRecall:    0.8696
+ WF1 Score:  0.8695
+========================================================================
+INFO - Completed Epoch 23
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9184
+ Precision: 0.9247
+ Recall:    0.917
+ F1 Score:  0.9208
+ WPrecision: 0.9222
+ WRecall:    0.9184
+ WF1 Score:  0.918
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8751
+ Recall:    0.8543
+ F1 Score:  0.8646
+ WPrecision: 0.8926
+ WRecall:    0.8696
+ WF1 Score:  0.8695
+========================================================================
+INFO - Completed Epoch 24
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9197
+ Precision: 0.9255
+ Recall:    0.9189
+ F1 Score:  0.9222
+ WPrecision: 0.9232
+ WRecall:    0.9197
+ WF1 Score:  0.9195
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8609
+ Precision: 0.8533
+ Recall:    0.8456
+ F1 Score:  0.8494
+ WPrecision: 0.8803
+ WRecall:    0.8609
+ WF1 Score:  0.861
+========================================================================
+INFO - Completed Epoch 25
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.92
+ Precision: 0.9255
+ Recall:    0.9195
+ F1 Score:  0.9225
+ WPrecision: 0.9235
+ WRecall:    0.92
+ WF1 Score:  0.9198
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8638
+ Precision: 0.8606
+ Recall:    0.8545
+ F1 Score:  0.8576
+ WPrecision: 0.8835
+ WRecall:    0.8638
+ WF1 Score:  0.8646
+========================================================================
+INFO - Completed Epoch 26
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9229
+ Precision: 0.9289
+ Recall:    0.9224
+ F1 Score:  0.9256
+ WPrecision: 0.9262
+ WRecall:    0.9229
+ WF1 Score:  0.9228
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8638
+ Precision: 0.8606
+ Recall:    0.8545
+ F1 Score:  0.8576
+ WPrecision: 0.8835
+ WRecall:    0.8638
+ WF1 Score:  0.8646
+========================================================================
+
++++++++++++++++++++++++++++++++++++++++++++++
+increase iterations to 2500
+++++++++++++++++++++++++++++++++++++++++++++++
+
+INFO - Input data schema details:
+INFO - Schema():
+idx   name                 type           meta data
+0     "row_id"             Integer        IntegerMetaData(name="row_id",)
+1     "assigned_to"        Integer        IntegerMetaData(name="assigned_to",)
+2     "bug_id"             Integer        IntegerMetaData(name="bug_id",)
+3     "bug_severity"       Categorical    CategoricalMetaData(name="bug_severity",stateNames=["normal","blocker","trivial","major","critical","minor","enhancement"])
+4     "bug_status"         Categorical    CategoricalMetaData(name="bug_status",stateNames=["trivial","CLOSED","critical","minor","RESOLVED","VERIFIED"])
+5     "component_id"       Integer        IntegerMetaData(name="component_id",)
+6     "creation_ts"        Time           TimeMetaData(name="creation_ts",timeZone=Europe/Bucharest)
+7     "delta_ts"           Time           TimeMetaData(name="delta_ts",timeZone=Europe/Bucharest)
+8     "product_id"         Integer        IntegerMetaData(name="product_id",)
+9     "resolution"         Categorical    CategoricalMetaData(name="resolution",stateNames=["FIXED"])
+10    "short_desc"         String         StringMetaData(name="short_desc",)
+11    "original_text"      String         StringMetaData(name="original_text",)
+12    "text"               String         StringMetaData(name="text",)
+13    "class"              Integer        IntegerMetaData(name="class",)
+
+INFO - 
+
+Other information obtainable from schema:
+INFO - Number of columns: 14
+INFO - Column names: [row_id, assigned_to, bug_id, bug_severity, bug_status, component_id, creation_ts, delta_ts, product_id, resolution, short_desc, original_text, text, class]
+INFO - Column types: [Integer, Integer, Integer, Categorical, Categorical, Integer, Time, Time, Integer, Categorical, String, String, String, Integer]
+INFO - 
+
+
+Schema after transforming data:
+INFO - Schema():
+idx   name                type           meta data
+0     "text"              String         StringMetaData(name="text",)
+1     "bug_severity"      Categorical    CategoricalMetaData(name="bug_severity",stateNames=["normal","blocker","trivial","major","critical","minor","enhancement"])
+2     "component_id"      Integer        IntegerMetaData(name="component_id",)
+3     "product_id"        Integer        IntegerMetaData(name="product_id",)
+4     "class"             Integer        IntegerMetaData(name="class",)
+
+INFO - Build Embedded Vectors ....
+INFO - Embedded Vectors OK ....
+INFO - Build model....
+INFO - Number of iterations 2500
+INFO - Network configuration {
+  "backprop" : true,
+  "backpropType" : "Standard",
+  "confs" : [ {
+    "extraArgs" : [ ],
+    "l1ByParam" : { },
+    "l2ByParam" : { },
+    "layer" : {
+      "gravesLSTM" : {
+        "activationFunction" : "softsign",
+        "adamMeanDecay" : "NaN",
+        "adamVarDecay" : "NaN",
+        "biasInit" : 0.0,
+        "biasL1" : 0.0,
+        "biasL2" : 0.0,
+        "biasLearningRate" : 0.0018,
+        "dist" : null,
+        "dropOut" : 0.5,
+        "epsilon" : "NaN",
+        "forgetGateBiasInit" : 1.0,
+        "gradientNormalization" : "ClipElementWiseAbsoluteValue",
+        "gradientNormalizationThreshold" : 1.0,
+        "l1" : 0.0,
+        "l2" : 1.0E-5,
+        "layerName" : "GravesLSTM",
+        "learningRate" : 0.0018,
+        "learningRateSchedule" : null,
+        "momentum" : "NaN",
+        "momentumSchedule" : null,
+        "nin" : 320,
+        "nout" : 50,
+        "rho" : "NaN",
+        "rmsDecay" : 0.95,
+        "updater" : "RMSPROP",
+        "weightInit" : "XAVIER"
+      }
+    },
+    "leakyreluAlpha" : 0.0,
+    "learningRateByParam" : { },
+    "learningRatePolicy" : "None",
+    "lrPolicyDecayRate" : "NaN",
+    "lrPolicyPower" : "NaN",
+    "lrPolicySteps" : "NaN",
+    "maxNumLineSearchIterations" : 5,
+    "miniBatch" : true,
+    "minimize" : true,
+    "numIterations" : 2500,
+    "optimizationAlgo" : "STOCHASTIC_GRADIENT_DESCENT",
+    "seed" : 1478189178775,
+    "stepFunction" : null,
+    "useDropConnect" : false,
+    "useRegularization" : true,
+    "variables" : [ ]
+  }, {
+    "extraArgs" : [ ],
+    "l1ByParam" : { },
+    "l2ByParam" : { },
+    "layer" : {
+      "rnnoutput" : {
+        "activationFunction" : "softmax",
+        "adamMeanDecay" : "NaN",
+        "adamVarDecay" : "NaN",
+        "biasInit" : 0.0,
+        "biasL1" : 0.0,
+        "biasL2" : 0.0,
+        "biasLearningRate" : 0.0018,
+        "customLossFunction" : null,
+        "dist" : null,
+        "dropOut" : 0.5,
+        "epsilon" : "NaN",
+        "gradientNormalization" : "ClipElementWiseAbsoluteValue",
+        "gradientNormalizationThreshold" : 1.0,
+        "l1" : 0.0,
+        "l2" : 1.0E-5,
+        "layerName" : "RnnOutputLayer",
+        "learningRate" : 0.0018,
+        "learningRateSchedule" : null,
+        "lossFn" : {
+          "MCXENT" : { }
+        },
+        "lossFunction" : "MCXENT",
+        "momentum" : "NaN",
+        "momentumSchedule" : null,
+        "nin" : 50,
+        "nout" : 28,
+        "rho" : "NaN",
+        "rmsDecay" : 0.95,
+        "updater" : "RMSPROP",
+        "weightInit" : "XAVIER"
+      }
+    },
+    "leakyreluAlpha" : 0.0,
+    "learningRateByParam" : { },
+    "learningRatePolicy" : "None",
+    "lrPolicyDecayRate" : "NaN",
+    "lrPolicyPower" : "NaN",
+    "lrPolicySteps" : "NaN",
+    "maxNumLineSearchIterations" : 5,
+    "miniBatch" : true,
+    "minimize" : true,
+    "numIterations" : 2500,
+    "optimizationAlgo" : "STOCHASTIC_GRADIENT_DESCENT",
+    "seed" : 1478189178775,
+    "stepFunction" : null,
+    "useDropConnect" : false,
+    "useRegularization" : true,
+    "variables" : [ ]
+  } ],
+  "inputPreProcessors" : { },
+  "pretrain" : false,
+  "tbpttBackLength" : 20,
+  "tbpttFwdLength" : 20
+}
+INFO - Completed Epoch 1
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.6755
+ Precision: 0.7643
+ Recall:    0.5708
+ F1 Score:  0.6535
+ WPrecision: 0.7335
+ WRecall:    0.6755
+ WF1 Score:  0.692
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.6203
+ Precision: 0.7438
+ Recall:    0.556
+ F1 Score:  0.6364
+ WPrecision: 0.7552
+ WRecall:    0.6203
+ WF1 Score:  0.6492
+========================================================================
+INFO - Completed Epoch 2
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.7726
+ Precision: 0.8527
+ Recall:    0.7082
+ F1 Score:  0.7738
+ WPrecision: 0.8419
+ WRecall:    0.7726
+ WF1 Score:  0.7973
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.7826
+ Precision: 0.8342
+ Recall:    0.7053
+ F1 Score:  0.7643
+ WPrecision: 0.8516
+ WRecall:    0.7826
+ WF1 Score:  0.793
+========================================================================
+INFO - Completed Epoch 3
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8335
+ Precision: 0.8694
+ Recall:    0.8033
+ F1 Score:  0.835
+ WPrecision: 0.8668
+ WRecall:    0.8335
+ WF1 Score:  0.8422
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.858
+ Precision: 0.8737
+ Recall:    0.8192
+ F1 Score:  0.8455
+ WPrecision: 0.8816
+ WRecall:    0.858
+ WF1 Score:  0.861
+========================================================================
+INFO - Completed Epoch 4
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8684
+ Precision: 0.8865
+ Recall:    0.8546
+ F1 Score:  0.8702
+ WPrecision: 0.8843
+ WRecall:    0.8684
+ WF1 Score:  0.8815
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8609
+ Precision: 0.8696
+ Recall:    0.8304
+ F1 Score:  0.8495
+ WPrecision: 0.8823
+ WRecall:    0.8609
+ WF1 Score:  0.8675
+========================================================================
+INFO - Completed Epoch 5
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8781
+ Precision: 0.8991
+ Recall:    0.8684
+ F1 Score:  0.8835
+ WPrecision: 0.8936
+ WRecall:    0.8781
+ WF1 Score:  0.8696
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8725
+ Precision: 0.8689
+ Recall:    0.8389
+ F1 Score:  0.8536
+ WPrecision: 0.8912
+ WRecall:    0.8725
+ WF1 Score:  0.8799
+========================================================================
+INFO - Completed Epoch 6
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8858
+ Precision: 0.9056
+ Recall:    0.8781
+ F1 Score:  0.8917
+ WPrecision: 0.8998
+ WRecall:    0.8858
+ WF1 Score:  0.879
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8725
+ Precision: 0.8698
+ Recall:    0.8389
+ F1 Score:  0.854
+ WPrecision: 0.8908
+ WRecall:    0.8725
+ WF1 Score:  0.8798
+========================================================================
+INFO - Completed Epoch 7
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8894
+ Precision: 0.9079
+ Recall:    0.8834
+ F1 Score:  0.8955
+ WPrecision: 0.9015
+ WRecall:    0.8894
+ WF1 Score:  0.8846
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8674
+ Recall:    0.8356
+ F1 Score:  0.8512
+ WPrecision: 0.8876
+ WRecall:    0.8696
+ WF1 Score:  0.877
+========================================================================
+INFO - Completed Epoch 8
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8942
+ Precision: 0.9084
+ Recall:    0.8891
+ F1 Score:  0.8986
+ WPrecision: 0.9033
+ WRecall:    0.8942
+ WF1 Score:  0.8908
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8725
+ Precision: 0.8732
+ Recall:    0.8446
+ F1 Score:  0.8586
+ WPrecision: 0.8898
+ WRecall:    0.8725
+ WF1 Score:  0.8722
+========================================================================
+INFO - Completed Epoch 9
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8968
+ Precision: 0.9089
+ Recall:    0.8923
+ F1 Score:  0.9005
+ WPrecision: 0.9042
+ WRecall:    0.8968
+ WF1 Score:  0.8945
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8683
+ Recall:    0.8406
+ F1 Score:  0.8542
+ WPrecision: 0.8897
+ WRecall:    0.8696
+ WF1 Score:  0.8696
+========================================================================
+INFO - Completed Epoch 10
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9
+ Precision: 0.9113
+ Recall:    0.896
+ F1 Score:  0.9036
+ WPrecision: 0.9066
+ WRecall:    0.9
+ WF1 Score:  0.8979
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8672
+ Recall:    0.8404
+ F1 Score:  0.8536
+ WPrecision: 0.8882
+ WRecall:    0.8696
+ WF1 Score:  0.8691
+========================================================================
+INFO - Completed Epoch 11
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9029
+ Precision: 0.9134
+ Recall:    0.8983
+ F1 Score:  0.9058
+ WPrecision: 0.9091
+ WRecall:    0.9029
+ WF1 Score:  0.901
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8639
+ Recall:    0.8374
+ F1 Score:  0.8504
+ WPrecision: 0.8874
+ WRecall:    0.8667
+ WF1 Score:  0.8669
+========================================================================
+INFO - Completed Epoch 12
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9052
+ Precision: 0.9143
+ Recall:    0.9007
+ F1 Score:  0.9074
+ WPrecision: 0.911
+ WRecall:    0.9052
+ WF1 Score:  0.9035
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8668
+ Recall:    0.8402
+ F1 Score:  0.8533
+ WPrecision: 0.889
+ WRecall:    0.8696
+ WF1 Score:  0.8693
+========================================================================
+INFO - Completed Epoch 13
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.909
+ Precision: 0.9175
+ Recall:    0.9049
+ F1 Score:  0.9112
+ WPrecision: 0.9142
+ WRecall:    0.909
+ WF1 Score:  0.9078
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8769
+ Recall:    0.8565
+ F1 Score:  0.8666
+ WPrecision: 0.8909
+ WRecall:    0.8696
+ WF1 Score:  0.8695
+========================================================================
+INFO - Completed Epoch 14
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9103
+ Precision: 0.9184
+ Recall:    0.9061
+ F1 Score:  0.9122
+ WPrecision: 0.9151
+ WRecall:    0.9103
+ WF1 Score:  0.9093
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8769
+ Recall:    0.8565
+ F1 Score:  0.8666
+ WPrecision: 0.8909
+ WRecall:    0.8696
+ WF1 Score:  0.8695
+========================================================================
+INFO - Completed Epoch 15
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9139
+ Precision: 0.9212
+ Recall:    0.9098
+ F1 Score:  0.9155
+ WPrecision: 0.9182
+ WRecall:    0.9139
+ WF1 Score:  0.913
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8769
+ Recall:    0.8565
+ F1 Score:  0.8666
+ WPrecision: 0.8909
+ WRecall:    0.8696
+ WF1 Score:  0.8695
+========================================================================
+INFO - Completed Epoch 16
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9165
+ Precision: 0.922
+ Recall:    0.9134
+ F1 Score:  0.9177
+ WPrecision: 0.9198
+ WRecall:    0.9165
+ WF1 Score:  0.916
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8769
+ Recall:    0.8565
+ F1 Score:  0.8666
+ WPrecision: 0.8909
+ WRecall:    0.8696
+ WF1 Score:  0.8695
+========================================================================
+INFO - Completed Epoch 17
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9165
+ Precision: 0.922
+ Recall:    0.9135
+ F1 Score:  0.9177
+ WPrecision: 0.9197
+ WRecall:    0.9165
+ WF1 Score:  0.916
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8759
+ Recall:    0.8537
+ F1 Score:  0.8647
+ WPrecision: 0.8887
+ WRecall:    0.8667
+ WF1 Score:  0.8663
+========================================================================
+INFO - Completed Epoch 18
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9168
+ Precision: 0.9221
+ Recall:    0.9145
+ F1 Score:  0.9183
+ WPrecision: 0.9199
+ WRecall:    0.9168
+ WF1 Score:  0.9163
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8638
+ Precision: 0.857
+ Recall:    0.8505
+ F1 Score:  0.8537
+ WPrecision: 0.882
+ WRecall:    0.8638
+ WF1 Score:  0.8639
+========================================================================
+INFO - Completed Epoch 19
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9177
+ Precision: 0.9237
+ Recall:    0.9153
+ F1 Score:  0.9195
+ WPrecision: 0.9208
+ WRecall:    0.9177
+ WF1 Score:  0.9173
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8609
+ Precision: 0.8554
+ Recall:    0.8477
+ F1 Score:  0.8516
+ WPrecision: 0.8795
+ WRecall:    0.8609
+ WF1 Score:  0.861
+========================================================================
+INFO - Completed Epoch 20
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9174
+ Precision: 0.9228
+ Recall:    0.9151
+ F1 Score:  0.9189
+ WPrecision: 0.9206
+ WRecall:    0.9174
+ WF1 Score:  0.9171
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8551
+ Precision: 0.853
+ Recall:    0.8412
+ F1 Score:  0.8471
+ WPrecision: 0.8763
+ WRecall:    0.8551
+ WF1 Score:  0.8549
+========================================================================
+INFO - Completed Epoch 21
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9174
+ Precision: 0.9226
+ Recall:    0.9151
+ F1 Score:  0.9188
+ WPrecision: 0.9206
+ WRecall:    0.9174
+ WF1 Score:  0.917
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8551
+ Precision: 0.853
+ Recall:    0.8412
+ F1 Score:  0.8471
+ WPrecision: 0.8763
+ WRecall:    0.8551
+ WF1 Score:  0.8549
+========================================================================
+INFO - Completed Epoch 22
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9181
+ Precision: 0.9231
+ Recall:    0.9155
+ F1 Score:  0.9193
+ WPrecision: 0.9211
+ WRecall:    0.9181
+ WF1 Score:  0.9177
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8551
+ Precision: 0.853
+ Recall:    0.8412
+ F1 Score:  0.8471
+ WPrecision: 0.8763
+ WRecall:    0.8551
+ WF1 Score:  0.8549
+========================================================================
+
+++++++++++++++++++++++++++++++++++++++++++++++
+15000 iterations 100 neurons
+++++++++++++++++++++++++++++++++++++++++++++++
+
+INFO - Input data schema details:
+INFO - Schema():
+idx   name                 type           meta data
+0     "row_id"             Integer        IntegerMetaData(name="row_id",)
+1     "assigned_to"        Integer        IntegerMetaData(name="assigned_to",)
+2     "bug_id"             Integer        IntegerMetaData(name="bug_id",)
+3     "bug_severity"       Categorical    CategoricalMetaData(name="bug_severity",stateNames=["normal","blocker","trivial","major","critical","minor","enhancement"])
+4     "bug_status"         Categorical    CategoricalMetaData(name="bug_status",stateNames=["trivial","CLOSED","critical","minor","RESOLVED","VERIFIED"])
+5     "component_id"       Integer        IntegerMetaData(name="component_id",)
+6     "creation_ts"        Time           TimeMetaData(name="creation_ts",timeZone=Europe/Bucharest)
+7     "delta_ts"           Time           TimeMetaData(name="delta_ts",timeZone=Europe/Bucharest)
+8     "product_id"         Integer        IntegerMetaData(name="product_id",)
+9     "resolution"         Categorical    CategoricalMetaData(name="resolution",stateNames=["FIXED"])
+10    "short_desc"         String         StringMetaData(name="short_desc",)
+11    "original_text"      String         StringMetaData(name="original_text",)
+12    "text"               String         StringMetaData(name="text",)
+13    "class"              Integer        IntegerMetaData(name="class",)
+
+INFO - 
+
+Other information obtainable from schema:
+INFO - Number of columns: 14
+INFO - Column names: [row_id, assigned_to, bug_id, bug_severity, bug_status, component_id, creation_ts, delta_ts, product_id, resolution, short_desc, original_text, text, class]
+INFO - Column types: [Integer, Integer, Integer, Categorical, Categorical, Integer, Time, Time, Integer, Categorical, String, String, String, Integer]
+INFO - 
+
+
+Schema after transforming data:
+INFO - Schema():
+idx   name                type           meta data
+0     "text"              String         StringMetaData(name="text",)
+1     "bug_severity"      Categorical    CategoricalMetaData(name="bug_severity",stateNames=["normal","blocker","trivial","major","critical","minor","enhancement"])
+2     "component_id"      Integer        IntegerMetaData(name="component_id",)
+3     "product_id"        Integer        IntegerMetaData(name="product_id",)
+4     "class"             Integer        IntegerMetaData(name="class",)
+
+INFO - Build Embedded Vectors ....
+INFO - Embedded Vectors OK ....
+INFO - Build model....
+INFO - Number of iterations 1500
+INFO - Network configuration {
+  "backprop" : true,
+  "backpropType" : "Standard",
+  "confs" : [ {
+    "extraArgs" : [ ],
+    "l1ByParam" : { },
+    "l2ByParam" : { },
+    "layer" : {
+      "gravesLSTM" : {
+        "activationFunction" : "softsign",
+        "adamMeanDecay" : "NaN",
+        "adamVarDecay" : "NaN",
+        "biasInit" : 0.0,
+        "biasL1" : 0.0,
+        "biasL2" : 0.0,
+        "biasLearningRate" : 0.0018,
+        "dist" : null,
+        "dropOut" : 0.5,
+        "epsilon" : "NaN",
+        "forgetGateBiasInit" : 1.0,
+        "gradientNormalization" : "ClipElementWiseAbsoluteValue",
+        "gradientNormalizationThreshold" : 1.0,
+        "l1" : 0.0,
+        "l2" : 1.0E-5,
+        "layerName" : "GravesLSTM",
+        "learningRate" : 0.0018,
+        "learningRateSchedule" : null,
+        "momentum" : "NaN",
+        "momentumSchedule" : null,
+        "nin" : 320,
+        "nout" : 100,
+        "rho" : "NaN",
+        "rmsDecay" : 0.95,
+        "updater" : "RMSPROP",
+        "weightInit" : "XAVIER"
+      }
+    },
+    "leakyreluAlpha" : 0.0,
+    "learningRateByParam" : { },
+    "learningRatePolicy" : "None",
+    "lrPolicyDecayRate" : "NaN",
+    "lrPolicyPower" : "NaN",
+    "lrPolicySteps" : "NaN",
+    "maxNumLineSearchIterations" : 5,
+    "miniBatch" : true,
+    "minimize" : true,
+    "numIterations" : 1500,
+    "optimizationAlgo" : "STOCHASTIC_GRADIENT_DESCENT",
+    "seed" : 1478202431103,
+    "stepFunction" : null,
+    "useDropConnect" : false,
+    "useRegularization" : true,
+    "variables" : [ ]
+  }, {
+    "extraArgs" : [ ],
+    "l1ByParam" : { },
+    "l2ByParam" : { },
+    "layer" : {
+      "rnnoutput" : {
+        "activationFunction" : "softmax",
+        "adamMeanDecay" : "NaN",
+        "adamVarDecay" : "NaN",
+        "biasInit" : 0.0,
+        "biasL1" : 0.0,
+        "biasL2" : 0.0,
+        "biasLearningRate" : 0.0018,
+        "customLossFunction" : null,
+        "dist" : null,
+        "dropOut" : 0.5,
+        "epsilon" : "NaN",
+        "gradientNormalization" : "ClipElementWiseAbsoluteValue",
+        "gradientNormalizationThreshold" : 1.0,
+        "l1" : 0.0,
+        "l2" : 1.0E-5,
+        "layerName" : "RnnOutputLayer",
+        "learningRate" : 0.0018,
+        "learningRateSchedule" : null,
+        "lossFn" : {
+          "MCXENT" : { }
+        },
+        "lossFunction" : "MCXENT",
+        "momentum" : "NaN",
+        "momentumSchedule" : null,
+        "nin" : 100,
+        "nout" : 28,
+        "rho" : "NaN",
+        "rmsDecay" : 0.95,
+        "updater" : "RMSPROP",
+        "weightInit" : "XAVIER"
+      }
+    },
+    "leakyreluAlpha" : 0.0,
+    "learningRateByParam" : { },
+    "learningRatePolicy" : "None",
+    "lrPolicyDecayRate" : "NaN",
+    "lrPolicyPower" : "NaN",
+    "lrPolicySteps" : "NaN",
+    "maxNumLineSearchIterations" : 5,
+    "miniBatch" : true,
+    "minimize" : true,
+    "numIterations" : 1500,
+    "optimizationAlgo" : "STOCHASTIC_GRADIENT_DESCENT",
+    "seed" : 1478202431103,
+    "stepFunction" : null,
+    "useDropConnect" : false,
+    "useRegularization" : true,
+    "variables" : [ ]
+  } ],
+  "inputPreProcessors" : { },
+  "pretrain" : false,
+  "tbpttBackLength" : 20,
+  "tbpttFwdLength" : 20
+}
+INFO - Completed Epoch 1
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.6823
+ Precision: 0.7994
+ Recall:    0.5951
+ F1 Score:  0.6823
+ WPrecision: 0.7579
+ WRecall:    0.6823
+ WF1 Score:  0.6884
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.6377
+ Precision: 0.7691
+ Recall:    0.5661
+ F1 Score:  0.6521
+ WPrecision: 0.7719
+ WRecall:    0.6377
+ WF1 Score:  0.681
+========================================================================
+INFO - Completed Epoch 2
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.801
+ Precision: 0.8563
+ Recall:    0.7559
+ F1 Score:  0.803
+ WPrecision: 0.8441
+ WRecall:    0.801
+ WF1 Score:  0.796
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8116
+ Precision: 0.8494
+ Recall:    0.7485
+ F1 Score:  0.7958
+ WPrecision: 0.85
+ WRecall:    0.8116
+ WF1 Score:  0.8124
+========================================================================
+INFO - Completed Epoch 3
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8471
+ Precision: 0.876
+ Recall:    0.8263
+ F1 Score:  0.8504
+ WPrecision: 0.8752
+ WRecall:    0.8471
+ WF1 Score:  0.859
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8609
+ Precision: 0.8752
+ Recall:    0.8104
+ F1 Score:  0.8416
+ WPrecision: 0.882
+ WRecall:    0.8609
+ WF1 Score:  0.8675
+========================================================================
+INFO - Completed Epoch 4
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8681
+ Precision: 0.8873
+ Recall:    0.8576
+ F1 Score:  0.8722
+ WPrecision: 0.8849
+ WRecall:    0.8681
+ WF1 Score:  0.8818
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8522
+ Precision: 0.8781
+ Recall:    0.8185
+ F1 Score:  0.8473
+ WPrecision: 0.8748
+ WRecall:    0.8522
+ WF1 Score:  0.8581
+========================================================================
+INFO - Completed Epoch 5
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8813
+ Precision: 0.8944
+ Recall:    0.8732
+ F1 Score:  0.8837
+ WPrecision: 0.8922
+ WRecall:    0.8813
+ WF1 Score:  0.8747
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.858
+ Precision: 0.8833
+ Recall:    0.8304
+ F1 Score:  0.856
+ WPrecision: 0.8806
+ WRecall:    0.858
+ WF1 Score:  0.8575
+========================================================================
+INFO - Completed Epoch 6
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8865
+ Precision: 0.9003
+ Recall:    0.8791
+ F1 Score:  0.8896
+ WPrecision: 0.8967
+ WRecall:    0.8865
+ WF1 Score:  0.8803
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8609
+ Precision: 0.8846
+ Recall:    0.8332
+ F1 Score:  0.8581
+ WPrecision: 0.8819
+ WRecall:    0.8609
+ WF1 Score:  0.8601
+========================================================================
+INFO - Completed Epoch 7
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8932
+ Precision: 0.9064
+ Recall:    0.8871
+ F1 Score:  0.8966
+ WPrecision: 0.9018
+ WRecall:    0.8932
+ WF1 Score:  0.8894
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8725
+ Recall:    0.8385
+ F1 Score:  0.8552
+ WPrecision: 0.8846
+ WRecall:    0.8667
+ WF1 Score:  0.8659
+========================================================================
+INFO - Completed Epoch 8
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8968
+ Precision: 0.9099
+ Recall:    0.8926
+ F1 Score:  0.9012
+ WPrecision: 0.9047
+ WRecall:    0.8968
+ WF1 Score:  0.8942
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8721
+ Recall:    0.8383
+ F1 Score:  0.8548
+ WPrecision: 0.8849
+ WRecall:    0.8667
+ WF1 Score:  0.8659
+========================================================================
+INFO - Completed Epoch 9
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8997
+ Precision: 0.9112
+ Recall:    0.8961
+ F1 Score:  0.9036
+ WPrecision: 0.9065
+ WRecall:    0.8997
+ WF1 Score:  0.8976
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8726
+ Recall:    0.844
+ F1 Score:  0.858
+ WPrecision: 0.8848
+ WRecall:    0.8696
+ WF1 Score:  0.8694
+========================================================================
+INFO - Completed Epoch 10
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9052
+ Precision: 0.9139
+ Recall:    0.9017
+ F1 Score:  0.9078
+ WPrecision: 0.9102
+ WRecall:    0.9052
+ WF1 Score:  0.9037
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8725
+ Precision: 0.8764
+ Recall:    0.8465
+ F1 Score:  0.8612
+ WPrecision: 0.8855
+ WRecall:    0.8725
+ WF1 Score:  0.8714
+========================================================================
+INFO - Completed Epoch 11
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9084
+ Precision: 0.9165
+ Recall:    0.9052
+ F1 Score:  0.9108
+ WPrecision: 0.9129
+ WRecall:    0.9084
+ WF1 Score:  0.9071
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8783
+ Precision: 0.8868
+ Recall:    0.866
+ F1 Score:  0.8763
+ WPrecision: 0.8925
+ WRecall:    0.8783
+ WF1 Score:  0.8775
+========================================================================
+INFO - Completed Epoch 12
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9097
+ Precision: 0.9182
+ Recall:    0.9067
+ F1 Score:  0.9124
+ WPrecision: 0.9138
+ WRecall:    0.9097
+ WF1 Score:  0.9084
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8783
+ Precision: 0.8868
+ Recall:    0.866
+ F1 Score:  0.8763
+ WPrecision: 0.8925
+ WRecall:    0.8783
+ WF1 Score:  0.8775
+========================================================================
+INFO - Completed Epoch 13
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9126
+ Precision: 0.9206
+ Recall:    0.9105
+ F1 Score:  0.9155
+ WPrecision: 0.9164
+ WRecall:    0.9126
+ WF1 Score:  0.9118
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8754
+ Precision: 0.8804
+ Recall:    0.8481
+ F1 Score:  0.8639
+ WPrecision: 0.8892
+ WRecall:    0.8754
+ WF1 Score:  0.875
+========================================================================
+INFO - Completed Epoch 14
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9158
+ Precision: 0.9243
+ Recall:    0.9131
+ F1 Score:  0.9187
+ WPrecision: 0.9194
+ WRecall:    0.9158
+ WF1 Score:  0.9151
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8754
+ Precision: 0.8804
+ Recall:    0.8481
+ F1 Score:  0.8639
+ WPrecision: 0.8892
+ WRecall:    0.8754
+ WF1 Score:  0.875
+========================================================================
+INFO - Completed Epoch 15
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9181
+ Precision: 0.9266
+ Recall:    0.9165
+ F1 Score:  0.9215
+ WPrecision: 0.9213
+ WRecall:    0.9181
+ WF1 Score:  0.9175
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8783
+ Precision: 0.882
+ Recall:    0.8568
+ F1 Score:  0.8692
+ WPrecision: 0.8907
+ WRecall:    0.8783
+ WF1 Score:  0.8789
+========================================================================
+INFO - Completed Epoch 16
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9197
+ Precision: 0.9278
+ Recall:    0.9183
+ F1 Score:  0.923
+ WPrecision: 0.9226
+ WRecall:    0.9197
+ WF1 Score:  0.9193
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8783
+ Precision: 0.8806
+ Recall:    0.8568
+ F1 Score:  0.8685
+ WPrecision: 0.8883
+ WRecall:    0.8783
+ WF1 Score:  0.8779
+========================================================================
+INFO - Completed Epoch 17
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.921
+ Precision: 0.9289
+ Recall:    0.9197
+ F1 Score:  0.9243
+ WPrecision: 0.9239
+ WRecall:    0.921
+ WF1 Score:  0.9207
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8783
+ Precision: 0.8806
+ Recall:    0.8568
+ F1 Score:  0.8685
+ WPrecision: 0.8883
+ WRecall:    0.8783
+ WF1 Score:  0.8779
+========================================================================
+INFO - Completed Epoch 18
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9229
+ Precision: 0.9307
+ Recall:    0.9215
+ F1 Score:  0.9261
+ WPrecision: 0.9256
+ WRecall:    0.9229
+ WF1 Score:  0.9226
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8812
+ Precision: 0.8876
+ Recall:    0.8747
+ F1 Score:  0.8811
+ WPrecision: 0.8914
+ WRecall:    0.8812
+ WF1 Score:  0.8806
+========================================================================
+INFO - Completed Epoch 19
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9235
+ Precision: 0.9312
+ Recall:    0.9224
+ F1 Score:  0.9268
+ WPrecision: 0.9261
+ WRecall:    0.9235
+ WF1 Score:  0.9233
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8812
+ Precision: 0.8894
+ Recall:    0.8747
+ F1 Score:  0.882
+ WPrecision: 0.8922
+ WRecall:    0.8812
+ WF1 Score:  0.8806
+========================================================================
+INFO - Completed Epoch 20
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9242
+ Precision: 0.9314
+ Recall:    0.923
+ F1 Score:  0.9272
+ WPrecision: 0.9267
+ WRecall:    0.9242
+ WF1 Score:  0.924
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8812
+ Precision: 0.8894
+ Recall:    0.8747
+ F1 Score:  0.882
+ WPrecision: 0.8922
+ WRecall:    0.8812
+ WF1 Score:  0.8806
+========================================================================
+INFO - Completed Epoch 21
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9248
+ Precision: 0.9321
+ Recall:    0.9233
+ F1 Score:  0.9277
+ WPrecision: 0.9273
+ WRecall:    0.9248
+ WF1 Score:  0.9247
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8754
+ Precision: 0.8866
+ Recall:    0.8667
+ F1 Score:  0.8766
+ WPrecision: 0.8886
+ WRecall:    0.8754
+ WF1 Score:  0.8743
+========================================================================
+INFO - Completed Epoch 22
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9265
+ Precision: 0.9335
+ Recall:    0.925
+ F1 Score:  0.9292
+ WPrecision: 0.9289
+ WRecall:    0.9265
+ WF1 Score:  0.9263
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8783
+ Precision: 0.8881
+ Recall:    0.8757
+ F1 Score:  0.8818
+ WPrecision: 0.891
+ WRecall:    0.8783
+ WF1 Score:  0.8778
+========================================================================
+INFO - Completed Epoch 23
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9274
+ Precision: 0.9343
+ Recall:    0.9259
+ F1 Score:  0.9301
+ WPrecision: 0.9298
+ WRecall:    0.9274
+ WF1 Score:  0.9273
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8754
+ Precision: 0.8864
+ Recall:    0.8743
+ F1 Score:  0.8803
+ WPrecision: 0.8878
+ WRecall:    0.8754
+ WF1 Score:  0.8749
+========================================================================
+INFO - Completed Epoch 24
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9281
+ Precision: 0.9349
+ Recall:    0.9263
+ F1 Score:  0.9306
+ WPrecision: 0.9304
+ WRecall:    0.9281
+ WF1 Score:  0.9279
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8754
+ Precision: 0.8864
+ Recall:    0.8743
+ F1 Score:  0.8803
+ WPrecision: 0.8878
+ WRecall:    0.8754
+ WF1 Score:  0.8749
+========================================================================
+INFO - Completed Epoch 25
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9294
+ Precision: 0.936
+ Recall:    0.928
+ F1 Score:  0.932
+ WPrecision: 0.9316
+ WRecall:    0.9294
+ WF1 Score:  0.9292
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8754
+ Precision: 0.8864
+ Recall:    0.8743
+ F1 Score:  0.8803
+ WPrecision: 0.8878
+ WRecall:    0.8754
+ WF1 Score:  0.8749
+========================================================================
+INFO - Completed Epoch 26
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9297
+ Precision: 0.9368
+ Recall:    0.9282
+ F1 Score:  0.9325
+ WPrecision: 0.9319
+ WRecall:    0.9297
+ WF1 Score:  0.9296
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8754
+ Precision: 0.8864
+ Recall:    0.8743
+ F1 Score:  0.8803
+ WPrecision: 0.8878
+ WRecall:    0.8754
+ WF1 Score:  0.8749
+========================================================================
+INFO - Completed Epoch 27
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9306
+ Precision: 0.9375
+ Recall:    0.9295
+ F1 Score:  0.9335
+ WPrecision: 0.9328
+ WRecall:    0.9306
+ WF1 Score:  0.9306
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8754
+ Precision: 0.8864
+ Recall:    0.8743
+ F1 Score:  0.8803
+ WPrecision: 0.8878
+ WRecall:    0.8754
+ WF1 Score:  0.8749
+========================================================================
+INFO - Completed Epoch 28
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9319
+ Precision: 0.9388
+ Recall:    0.9308
+ F1 Score:  0.9348
+ WPrecision: 0.9342
+ WRecall:    0.9319
+ WF1 Score:  0.9319
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8783
+ Precision: 0.888
+ Recall:    0.8762
+ F1 Score:  0.882
+ WPrecision: 0.8895
+ WRecall:    0.8783
+ WF1 Score:  0.8776
+========================================================================
+INFO - Completed Epoch 29
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9326
+ Precision: 0.9393
+ Recall:    0.9315
+ F1 Score:  0.9354
+ WPrecision: 0.9348
+ WRecall:    0.9326
+ WF1 Score:  0.9326
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8725
+ Precision: 0.884
+ Recall:    0.8717
+ F1 Score:  0.8778
+ WPrecision: 0.8835
+ WRecall:    0.8725
+ WF1 Score:  0.8722
+========================================================================
+INFO - Completed Epoch 30
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9335
+ Precision: 0.9401
+ Recall:    0.9327
+ F1 Score:  0.9364
+ WPrecision: 0.9357
+ WRecall:    0.9335
+ WF1 Score:  0.9336
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8799
+ Recall:    0.8697
+ F1 Score:  0.8748
+ WPrecision: 0.8803
+ WRecall:    0.8696
+ WF1 Score:  0.8695
+========================================================================
+INFO - Completed Epoch 31
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9332
+ Precision: 0.9393
+ Recall:    0.9322
+ F1 Score:  0.9357
+ WPrecision: 0.9353
+ WRecall:    0.9332
+ WF1 Score:  0.9333
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8767
+ Recall:    0.8665
+ F1 Score:  0.8716
+ WPrecision: 0.8771
+ WRecall:    0.8667
+ WF1 Score:  0.8667
+========================================================================
+INFO - Completed Epoch 32
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9335
+ Precision: 0.9396
+ Recall:    0.9327
+ F1 Score:  0.9362
+ WPrecision: 0.9357
+ WRecall:    0.9335
+ WF1 Score:  0.9336
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8767
+ Recall:    0.8665
+ F1 Score:  0.8716
+ WPrecision: 0.8771
+ WRecall:    0.8667
+ WF1 Score:  0.8667
+========================================================================
+INFO - Completed Epoch 33
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9348
+ Precision: 0.9412
+ Recall:    0.9348
+ F1 Score:  0.9379
+ WPrecision: 0.937
+ WRecall:    0.9348
+ WF1 Score:  0.9349
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8767
+ Recall:    0.8665
+ F1 Score:  0.8716
+ WPrecision: 0.8771
+ WRecall:    0.8667
+ WF1 Score:  0.8667
+========================================================================
+INFO - Completed Epoch 34
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9352
+ Precision: 0.9419
+ Recall:    0.9357
+ F1 Score:  0.9388
+ WPrecision: 0.9373
+ WRecall:    0.9352
+ WF1 Score:  0.9352
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8767
+ Recall:    0.8665
+ F1 Score:  0.8716
+ WPrecision: 0.8771
+ WRecall:    0.8667
+ WF1 Score:  0.8667
+========================================================================
+INFO - Completed Epoch 35
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9355
+ Precision: 0.9422
+ Recall:    0.9364
+ F1 Score:  0.9393
+ WPrecision: 0.9376
+ WRecall:    0.9355
+ WF1 Score:  0.9356
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8767
+ Recall:    0.8665
+ F1 Score:  0.8716
+ WPrecision: 0.8771
+ WRecall:    0.8667
+ WF1 Score:  0.8667
+========================================================================
+INFO - Completed Epoch 36
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9355
+ Precision: 0.9422
+ Recall:    0.9365
+ F1 Score:  0.9394
+ WPrecision: 0.9375
+ WRecall:    0.9355
+ WF1 Score:  0.9355
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8767
+ Recall:    0.8665
+ F1 Score:  0.8716
+ WPrecision: 0.8771
+ WRecall:    0.8667
+ WF1 Score:  0.8667
+========================================================================
+INFO - Completed Epoch 37
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9358
+ Precision: 0.9424
+ Recall:    0.9364
+ F1 Score:  0.9394
+ WPrecision: 0.9378
+ WRecall:    0.9358
+ WF1 Score:  0.9358
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8767
+ Recall:    0.8665
+ F1 Score:  0.8716
+ WPrecision: 0.8771
+ WRecall:    0.8667
+ WF1 Score:  0.8667
+========================================================================
+INFO - Completed Epoch 38
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9368
+ Precision: 0.943
+ Recall:    0.9371
+ F1 Score:  0.9401
+ WPrecision: 0.9388
+ WRecall:    0.9368
+ WF1 Score:  0.9368
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8774
+ Recall:    0.8665
+ F1 Score:  0.8719
+ WPrecision: 0.8766
+ WRecall:    0.8667
+ WF1 Score:  0.8663
+========================================================================
+INFO - Completed Epoch 39
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9371
+ Precision: 0.9432
+ Recall:    0.9374
+ F1 Score:  0.9403
+ WPrecision: 0.9391
+ WRecall:    0.9371
+ WF1 Score:  0.9371
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8774
+ Recall:    0.8665
+ F1 Score:  0.8719
+ WPrecision: 0.8766
+ WRecall:    0.8667
+ WF1 Score:  0.8663
+========================================================================
+INFO - Completed Epoch 40
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9365
+ Precision: 0.9427
+ Recall:    0.9369
+ F1 Score:  0.9398
+ WPrecision: 0.9385
+ WRecall:    0.9365
+ WF1 Score:  0.9365
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8774
+ Recall:    0.8665
+ F1 Score:  0.8719
+ WPrecision: 0.8766
+ WRecall:    0.8667
+ WF1 Score:  0.8663
+========================================================================
+INFO - Completed Epoch 41
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9361
+ Precision: 0.9422
+ Recall:    0.9366
+ F1 Score:  0.9394
+ WPrecision: 0.9382
+ WRecall:    0.9361
+ WF1 Score:  0.9362
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8774
+ Recall:    0.8665
+ F1 Score:  0.8719
+ WPrecision: 0.8766
+ WRecall:    0.8667
+ WF1 Score:  0.8663
+========================================================================
+INFO - Completed Epoch 42
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9365
+ Precision: 0.9429
+ Recall:    0.9371
+ F1 Score:  0.94
+ WPrecision: 0.9385
+ WRecall:    0.9365
+ WF1 Score:  0.9365
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8774
+ Recall:    0.8665
+ F1 Score:  0.8719
+ WPrecision: 0.8766
+ WRecall:    0.8667
+ WF1 Score:  0.8663
+========================================================================
+INFO - Completed Epoch 43
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9365
+ Precision: 0.9429
+ Recall:    0.9371
+ F1 Score:  0.94
+ WPrecision: 0.9384
+ WRecall:    0.9365
+ WF1 Score:  0.9365
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8774
+ Recall:    0.8665
+ F1 Score:  0.8719
+ WPrecision: 0.8766
+ WRecall:    0.8667
+ WF1 Score:  0.8663
+========================================================================
+INFO - Completed Epoch 44
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9368
+ Precision: 0.9431
+ Recall:    0.9374
+ F1 Score:  0.9403
+ WPrecision: 0.9387
+ WRecall:    0.9368
+ WF1 Score:  0.9368
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8774
+ Recall:    0.8665
+ F1 Score:  0.8719
+ WPrecision: 0.8766
+ WRecall:    0.8667
+ WF1 Score:  0.8663
+========================================================================
+INFO - Completed Epoch 45
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9368
+ Precision: 0.9432
+ Recall:    0.9374
+ F1 Score:  0.9403
+ WPrecision: 0.9387
+ WRecall:    0.9368
+ WF1 Score:  0.9368
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8774
+ Recall:    0.8665
+ F1 Score:  0.8719
+ WPrecision: 0.8766
+ WRecall:    0.8667
+ WF1 Score:  0.8663
+========================================================================
+INFO - Completed Epoch 46
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9374
+ Precision: 0.9436
+ Recall:    0.9379
+ F1 Score:  0.9407
+ WPrecision: 0.9393
+ WRecall:    0.9374
+ WF1 Score:  0.9375
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8774
+ Recall:    0.8665
+ F1 Score:  0.8719
+ WPrecision: 0.8766
+ WRecall:    0.8667
+ WF1 Score:  0.8663
+========================================================================
+INFO - Completed Epoch 47
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9377
+ Precision: 0.9438
+ Recall:    0.9381
+ F1 Score:  0.941
+ WPrecision: 0.9396
+ WRecall:    0.9377
+ WF1 Score:  0.9378
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8774
+ Recall:    0.8665
+ F1 Score:  0.8719
+ WPrecision: 0.8766
+ WRecall:    0.8667
+ WF1 Score:  0.8663
+========================================================================
+INFO - Completed Epoch 48
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9381
+ Precision: 0.9441
+ Recall:    0.9384
+ F1 Score:  0.9412
+ WPrecision: 0.94
+ WRecall:    0.9381
+ WF1 Score:  0.9381
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8774
+ Recall:    0.8665
+ F1 Score:  0.8719
+ WPrecision: 0.8766
+ WRecall:    0.8667
+ WF1 Score:  0.8663
+========================================================================
+INFO - Completed Epoch 49
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9374
+ Precision: 0.9436
+ Recall:    0.938
+ F1 Score:  0.9408
+ WPrecision: 0.9394
+ WRecall:    0.9374
+ WF1 Score:  0.9375
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8774
+ Recall:    0.8665
+ F1 Score:  0.8719
+ WPrecision: 0.8766
+ WRecall:    0.8667
+ WF1 Score:  0.8663
+========================================================================
+INFO - Completed Epoch 50
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9374
+ Precision: 0.9436
+ Recall:    0.938
+ F1 Score:  0.9408
+ WPrecision: 0.9394
+ WRecall:    0.9374
+ WF1 Score:  0.9375
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8774
+ Recall:    0.8665
+ F1 Score:  0.8719
+ WPrecision: 0.8766
+ WRecall:    0.8667
+ WF1 Score:  0.8663
+========================================================================
+INFO - Completed Epoch 51
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9381
+ Precision: 0.9441
+ Recall:    0.9387
+ F1 Score:  0.9414
+ WPrecision: 0.9399
+ WRecall:    0.9381
+ WF1 Score:  0.9381
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8774
+ Recall:    0.8665
+ F1 Score:  0.8719
+ WPrecision: 0.8766
+ WRecall:    0.8667
+ WF1 Score:  0.8663
+========================================================================
+INFO - Completed Epoch 52
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9381
+ Precision: 0.944
+ Recall:    0.9387
+ F1 Score:  0.9414
+ WPrecision: 0.9399
+ WRecall:    0.9381
+ WF1 Score:  0.9381
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8774
+ Recall:    0.8665
+ F1 Score:  0.8719
+ WPrecision: 0.8766
+ WRecall:    0.8667
+ WF1 Score:  0.8663
+========================================================================
+INFO - Completed Epoch 53
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9387
+ Precision: 0.9446
+ Recall:    0.9392
+ F1 Score:  0.9419
+ WPrecision: 0.9406
+ WRecall:    0.9387
+ WF1 Score:  0.9388
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8774
+ Recall:    0.8665
+ F1 Score:  0.8719
+ WPrecision: 0.8766
+ WRecall:    0.8667
+ WF1 Score:  0.8663
+========================================================================
+INFO - Completed Epoch 54
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9394
+ Precision: 0.9452
+ Recall:    0.9397
+ F1 Score:  0.9425
+ WPrecision: 0.941
+ WRecall:    0.9394
+ WF1 Score:  0.9394
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8774
+ Recall:    0.8665
+ F1 Score:  0.8719
+ WPrecision: 0.8766
+ WRecall:    0.8667
+ WF1 Score:  0.8663
+========================================================================
+INFO - Completed Epoch 55
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9394
+ Precision: 0.9452
+ Recall:    0.9397
+ F1 Score:  0.9425
+ WPrecision: 0.941
+ WRecall:    0.9394
+ WF1 Score:  0.9394
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8774
+ Recall:    0.8665
+ F1 Score:  0.8719
+ WPrecision: 0.8766
+ WRecall:    0.8667
+ WF1 Score:  0.8663
+========================================================================
+INFO - Completed Epoch 56
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9394
+ Precision: 0.9452
+ Recall:    0.9397
+ F1 Score:  0.9425
+ WPrecision: 0.941
+ WRecall:    0.9394
+ WF1 Score:  0.9394
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8774
+ Recall:    0.8665
+ F1 Score:  0.8719
+ WPrecision: 0.8766
+ WRecall:    0.8667
+ WF1 Score:  0.8663
+========================================================================
+INFO - Completed Epoch 57
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9397
+ Precision: 0.9459
+ Recall:    0.9401
+ F1 Score:  0.943
+ WPrecision: 0.9413
+ WRecall:    0.9397
+ WF1 Score:  0.9397
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8774
+ Recall:    0.8665
+ F1 Score:  0.8719
+ WPrecision: 0.8766
+ WRecall:    0.8667
+ WF1 Score:  0.8663
+========================================================================
+INFO - Completed Epoch 58
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9403
+ Precision: 0.9463
+ Recall:    0.9409
+ F1 Score:  0.9436
+ WPrecision: 0.9419
+ WRecall:    0.9403
+ WF1 Score:  0.9403
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8774
+ Recall:    0.8665
+ F1 Score:  0.8719
+ WPrecision: 0.8766
+ WRecall:    0.8667
+ WF1 Score:  0.8663
+========================================================================
+INFO - Completed Epoch 59
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.941
+ Precision: 0.9469
+ Recall:    0.9414
+ F1 Score:  0.9441
+ WPrecision: 0.9426
+ WRecall:    0.941
+ WF1 Score:  0.941
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8774
+ Recall:    0.8665
+ F1 Score:  0.8719
+ WPrecision: 0.8766
+ WRecall:    0.8667
+ WF1 Score:  0.8663
+========================================================================
+INFO - Completed Epoch 60
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.941
+ Precision: 0.9469
+ Recall:    0.9414
+ F1 Score:  0.9441
+ WPrecision: 0.9426
+ WRecall:    0.941
+ WF1 Score:  0.941
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8774
+ Recall:    0.8665
+ F1 Score:  0.8719
+ WPrecision: 0.8766
+ WRecall:    0.8667
+ WF1 Score:  0.8663
+========================================================================
+INFO - Completed Epoch 61
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.941
+ Precision: 0.947
+ Recall:    0.9414
+ F1 Score:  0.9442
+ WPrecision: 0.9426
+ WRecall:    0.941
+ WF1 Score:  0.941
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8774
+ Recall:    0.8665
+ F1 Score:  0.8719
+ WPrecision: 0.8766
+ WRecall:    0.8667
+ WF1 Score:  0.8663
+========================================================================
+INFO - Completed Epoch 62
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9419
+ Precision: 0.9477
+ Recall:    0.9426
+ F1 Score:  0.9451
+ WPrecision: 0.9435
+ WRecall:    0.9419
+ WF1 Score:  0.9419
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8774
+ Recall:    0.8665
+ F1 Score:  0.8719
+ WPrecision: 0.8766
+ WRecall:    0.8667
+ WF1 Score:  0.8663
+========================================================================
+INFO - Completed Epoch 63
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9419
+ Precision: 0.9477
+ Recall:    0.9426
+ F1 Score:  0.9451
+ WPrecision: 0.9435
+ WRecall:    0.9419
+ WF1 Score:  0.9419
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8798
+ Recall:    0.8665
+ F1 Score:  0.8731
+ WPrecision: 0.8766
+ WRecall:    0.8667
+ WF1 Score:  0.8663
+========================================================================
+INFO - Completed Epoch 64
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9416
+ Precision: 0.9475
+ Recall:    0.9423
+ F1 Score:  0.9449
+ WPrecision: 0.9432
+ WRecall:    0.9416
+ WF1 Score:  0.9416
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8798
+ Recall:    0.8665
+ F1 Score:  0.8731
+ WPrecision: 0.8766
+ WRecall:    0.8667
+ WF1 Score:  0.8663
+========================================================================
+INFO - Completed Epoch 65
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9419
+ Precision: 0.9477
+ Recall:    0.9426
+ F1 Score:  0.9451
+ WPrecision: 0.9435
+ WRecall:    0.9419
+ WF1 Score:  0.9419
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8798
+ Recall:    0.8665
+ F1 Score:  0.8731
+ WPrecision: 0.8766
+ WRecall:    0.8667
+ WF1 Score:  0.8663
+========================================================================
+INFO - Completed Epoch 66
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9419
+ Precision: 0.9477
+ Recall:    0.9426
+ F1 Score:  0.9451
+ WPrecision: 0.9435
+ WRecall:    0.9419
+ WF1 Score:  0.9419
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8725
+ Precision: 0.8825
+ Recall:    0.8744
+ F1 Score:  0.8785
+ WPrecision: 0.8802
+ WRecall:    0.8725
+ WF1 Score:  0.8726
+========================================================================
+INFO - Completed Epoch 67
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9419
+ Precision: 0.9477
+ Recall:    0.9426
+ F1 Score:  0.9451
+ WPrecision: 0.9435
+ WRecall:    0.9419
+ WF1 Score:  0.9419
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8725
+ Precision: 0.8825
+ Recall:    0.8744
+ F1 Score:  0.8785
+ WPrecision: 0.8802
+ WRecall:    0.8725
+ WF1 Score:  0.8726
+========================================================================
+INFO - Completed Epoch 68
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9419
+ Precision: 0.9477
+ Recall:    0.9426
+ F1 Score:  0.9451
+ WPrecision: 0.9435
+ WRecall:    0.9419
+ WF1 Score:  0.9419
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8725
+ Precision: 0.8825
+ Recall:    0.8744
+ F1 Score:  0.8785
+ WPrecision: 0.8802
+ WRecall:    0.8725
+ WF1 Score:  0.8726
+========================================================================
+INFO - Completed Epoch 69
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9419
+ Precision: 0.9476
+ Recall:    0.9427
+ F1 Score:  0.9452
+ WPrecision: 0.9434
+ WRecall:    0.9419
+ WF1 Score:  0.9419
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8725
+ Precision: 0.8825
+ Recall:    0.8744
+ F1 Score:  0.8785
+ WPrecision: 0.8802
+ WRecall:    0.8725
+ WF1 Score:  0.8726
+========================================================================
+INFO - Completed Epoch 70
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9413
+ Precision: 0.9469
+ Recall:    0.9422
+ F1 Score:  0.9446
+ WPrecision: 0.9427
+ WRecall:    0.9413
+ WF1 Score:  0.9413
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8725
+ Precision: 0.8825
+ Recall:    0.8744
+ F1 Score:  0.8785
+ WPrecision: 0.8802
+ WRecall:    0.8725
+ WF1 Score:  0.8726
+========================================================================
+INFO - Completed Epoch 71
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9416
+ Precision: 0.9471
+ Recall:    0.9427
+ F1 Score:  0.9449
+ WPrecision: 0.943
+ WRecall:    0.9416
+ WF1 Score:  0.9416
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8725
+ Recall:    0.8712
+ F1 Score:  0.8719
+ WPrecision: 0.8763
+ WRecall:    0.8696
+ WF1 Score:  0.8695
+========================================================================
+INFO - Completed Epoch 72
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9416
+ Precision: 0.9471
+ Recall:    0.9427
+ F1 Score:  0.9449
+ WPrecision: 0.943
+ WRecall:    0.9416
+ WF1 Score:  0.9416
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8725
+ Recall:    0.8712
+ F1 Score:  0.8719
+ WPrecision: 0.8763
+ WRecall:    0.8696
+ WF1 Score:  0.8695
+========================================================================
+INFO - Completed Epoch 73
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9419
+ Precision: 0.9474
+ Recall:    0.9429
+ F1 Score:  0.9452
+ WPrecision: 0.9433
+ WRecall:    0.9419
+ WF1 Score:  0.9419
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8725
+ Recall:    0.8712
+ F1 Score:  0.8719
+ WPrecision: 0.8763
+ WRecall:    0.8696
+ WF1 Score:  0.8695
+========================================================================
+INFO - Completed Epoch 74
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9419
+ Precision: 0.9474
+ Recall:    0.9429
+ F1 Score:  0.9452
+ WPrecision: 0.9433
+ WRecall:    0.9419
+ WF1 Score:  0.9419
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8725
+ Recall:    0.8712
+ F1 Score:  0.8719
+ WPrecision: 0.8763
+ WRecall:    0.8696
+ WF1 Score:  0.8695
+========================================================================
+INFO - Completed Epoch 75
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9423
+ Precision: 0.9477
+ Recall:    0.9435
+ F1 Score:  0.9456
+ WPrecision: 0.9437
+ WRecall:    0.9423
+ WF1 Score:  0.9423
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8725
+ Recall:    0.8712
+ F1 Score:  0.8719
+ WPrecision: 0.8763
+ WRecall:    0.8696
+ WF1 Score:  0.8695
+========================================================================
+INFO - Completed Epoch 76
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9426
+ Precision: 0.9478
+ Recall:    0.9438
+ F1 Score:  0.9458
+ WPrecision: 0.944
+ WRecall:    0.9426
+ WF1 Score:  0.9426
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8725
+ Recall:    0.8712
+ F1 Score:  0.8719
+ WPrecision: 0.8763
+ WRecall:    0.8696
+ WF1 Score:  0.8695
+========================================================================
+INFO - Completed Epoch 77
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9429
+ Precision: 0.9481
+ Recall:    0.9442
+ F1 Score:  0.9461
+ WPrecision: 0.9443
+ WRecall:    0.9429
+ WF1 Score:  0.9429
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8725
+ Recall:    0.8712
+ F1 Score:  0.8719
+ WPrecision: 0.8763
+ WRecall:    0.8696
+ WF1 Score:  0.8695
+========================================================================
+INFO - Completed Epoch 78
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9426
+ Precision: 0.948
+ Recall:    0.9435
+ F1 Score:  0.9458
+ WPrecision: 0.944
+ WRecall:    0.9426
+ WF1 Score:  0.9426
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8725
+ Recall:    0.8712
+ F1 Score:  0.8719
+ WPrecision: 0.8763
+ WRecall:    0.8696
+ WF1 Score:  0.8695
+========================================================================
+INFO - Completed Epoch 79
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9426
+ Precision: 0.948
+ Recall:    0.9435
+ F1 Score:  0.9458
+ WPrecision: 0.944
+ WRecall:    0.9426
+ WF1 Score:  0.9426
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8725
+ Recall:    0.8712
+ F1 Score:  0.8719
+ WPrecision: 0.8763
+ WRecall:    0.8696
+ WF1 Score:  0.8695
+========================================================================
+INFO - Completed Epoch 80
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9426
+ Precision: 0.948
+ Recall:    0.9435
+ F1 Score:  0.9458
+ WPrecision: 0.944
+ WRecall:    0.9426
+ WF1 Score:  0.9426
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8725
+ Recall:    0.8712
+ F1 Score:  0.8719
+ WPrecision: 0.8763
+ WRecall:    0.8696
+ WF1 Score:  0.8695
+========================================================================
+INFO - Completed Epoch 81
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9423
+ Precision: 0.9477
+ Recall:    0.9434
+ F1 Score:  0.9455
+ WPrecision: 0.9437
+ WRecall:    0.9423
+ WF1 Score:  0.9422
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8725
+ Recall:    0.8712
+ F1 Score:  0.8719
+ WPrecision: 0.8763
+ WRecall:    0.8696
+ WF1 Score:  0.8695
+========================================================================
+INFO - Completed Epoch 82
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9423
+ Precision: 0.9477
+ Recall:    0.9434
+ F1 Score:  0.9455
+ WPrecision: 0.9437
+ WRecall:    0.9423
+ WF1 Score:  0.9422
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8725
+ Recall:    0.8712
+ F1 Score:  0.8719
+ WPrecision: 0.8763
+ WRecall:    0.8696
+ WF1 Score:  0.8695
+========================================================================
+INFO - Completed Epoch 83
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9423
+ Precision: 0.9477
+ Recall:    0.9434
+ F1 Score:  0.9455
+ WPrecision: 0.9437
+ WRecall:    0.9423
+ WF1 Score:  0.9422
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8725
+ Recall:    0.8712
+ F1 Score:  0.8719
+ WPrecision: 0.8763
+ WRecall:    0.8696
+ WF1 Score:  0.8695
+========================================================================
+INFO - Completed Epoch 84
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9423
+ Precision: 0.9477
+ Recall:    0.9434
+ F1 Score:  0.9455
+ WPrecision: 0.9437
+ WRecall:    0.9423
+ WF1 Score:  0.9422
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8725
+ Recall:    0.8712
+ F1 Score:  0.8719
+ WPrecision: 0.8763
+ WRecall:    0.8696
+ WF1 Score:  0.8695
+========================================================================
+INFO - Completed Epoch 85
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9423
+ Precision: 0.9477
+ Recall:    0.9434
+ F1 Score:  0.9455
+ WPrecision: 0.9437
+ WRecall:    0.9423
+ WF1 Score:  0.9422
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8725
+ Recall:    0.8712
+ F1 Score:  0.8719
+ WPrecision: 0.8763
+ WRecall:    0.8696
+ WF1 Score:  0.8695
+========================================================================
+INFO - Completed Epoch 86
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9419
+ Precision: 0.9476
+ Recall:    0.9432
+ F1 Score:  0.9454
+ WPrecision: 0.9434
+ WRecall:    0.9419
+ WF1 Score:  0.9419
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8725
+ Recall:    0.8712
+ F1 Score:  0.8719
+ WPrecision: 0.8763
+ WRecall:    0.8696
+ WF1 Score:  0.8695
+========================================================================
+INFO - Completed Epoch 87
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9419
+ Precision: 0.9476
+ Recall:    0.9432
+ F1 Score:  0.9454
+ WPrecision: 0.9434
+ WRecall:    0.9419
+ WF1 Score:  0.9419
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8725
+ Recall:    0.8712
+ F1 Score:  0.8719
+ WPrecision: 0.8763
+ WRecall:    0.8696
+ WF1 Score:  0.8695
+========================================================================
+INFO - Completed Epoch 88
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9419
+ Precision: 0.9476
+ Recall:    0.9432
+ F1 Score:  0.9454
+ WPrecision: 0.9434
+ WRecall:    0.9419
+ WF1 Score:  0.9419
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8701
+ Recall:    0.8712
+ F1 Score:  0.8707
+ WPrecision: 0.8763
+ WRecall:    0.8696
+ WF1 Score:  0.8695
+========================================================================
+INFO - Completed Epoch 89
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9419
+ Precision: 0.9476
+ Recall:    0.9432
+ F1 Score:  0.9454
+ WPrecision: 0.9434
+ WRecall:    0.9419
+ WF1 Score:  0.9419
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8701
+ Recall:    0.8712
+ F1 Score:  0.8707
+ WPrecision: 0.8763
+ WRecall:    0.8696
+ WF1 Score:  0.8695
+========================================================================
+
++++++++++++++++++++++++++
+250 neurons
+++++++++++++++++++++++++++++++++++
+
+INFO - Input data schema details:
+INFO - Schema():
+idx   name                 type           meta data
+0     "row_id"             Integer        IntegerMetaData(name="row_id",)
+1     "assigned_to"        Integer        IntegerMetaData(name="assigned_to",)
+2     "bug_id"             Integer        IntegerMetaData(name="bug_id",)
+3     "bug_severity"       Categorical    CategoricalMetaData(name="bug_severity",stateNames=["normal","blocker","trivial","major","critical","minor","enhancement"])
+4     "bug_status"         Categorical    CategoricalMetaData(name="bug_status",stateNames=["trivial","CLOSED","critical","minor","RESOLVED","VERIFIED"])
+5     "component_id"       Integer        IntegerMetaData(name="component_id",)
+6     "creation_ts"        Time           TimeMetaData(name="creation_ts",timeZone=Europe/Bucharest)
+7     "delta_ts"           Time           TimeMetaData(name="delta_ts",timeZone=Europe/Bucharest)
+8     "product_id"         Integer        IntegerMetaData(name="product_id",)
+9     "resolution"         Categorical    CategoricalMetaData(name="resolution",stateNames=["FIXED"])
+10    "short_desc"         String         StringMetaData(name="short_desc",)
+11    "original_text"      String         StringMetaData(name="original_text",)
+12    "text"               String         StringMetaData(name="text",)
+13    "class"              Integer        IntegerMetaData(name="class",)
+
+INFO - 
+
+Other information obtainable from schema:
+INFO - Number of columns: 14
+INFO - Column names: [row_id, assigned_to, bug_id, bug_severity, bug_status, component_id, creation_ts, delta_ts, product_id, resolution, short_desc, original_text, text, class]
+INFO - Column types: [Integer, Integer, Integer, Categorical, Categorical, Integer, Time, Time, Integer, Categorical, String, String, String, Integer]
+INFO - 
+
+
+Schema after transforming data:
+INFO - Schema():
+idx   name                type           meta data
+0     "text"              String         StringMetaData(name="text",)
+1     "bug_severity"      Categorical    CategoricalMetaData(name="bug_severity",stateNames=["normal","blocker","trivial","major","critical","minor","enhancement"])
+2     "component_id"      Integer        IntegerMetaData(name="component_id",)
+3     "product_id"        Integer        IntegerMetaData(name="product_id",)
+4     "class"             Integer        IntegerMetaData(name="class",)
+
+INFO - Build Embedded Vectors ....
+INFO - Embedded Vectors OK ....
+INFO - Build model....
+INFO - Number of iterations 1500
+INFO - Network configuration {
+  "backprop" : true,
+  "backpropType" : "Standard",
+  "confs" : [ {
+    "extraArgs" : [ ],
+    "l1ByParam" : { },
+    "l2ByParam" : { },
+    "layer" : {
+      "gravesLSTM" : {
+        "activationFunction" : "softsign",
+        "adamMeanDecay" : "NaN",
+        "adamVarDecay" : "NaN",
+        "biasInit" : 0.0,
+        "biasL1" : 0.0,
+        "biasL2" : 0.0,
+        "biasLearningRate" : 0.0018,
+        "dist" : null,
+        "dropOut" : 0.5,
+        "epsilon" : "NaN",
+        "forgetGateBiasInit" : 1.0,
+        "gradientNormalization" : "ClipElementWiseAbsoluteValue",
+        "gradientNormalizationThreshold" : 1.0,
+        "l1" : 0.0,
+        "l2" : 1.0E-5,
+        "layerName" : "GravesLSTM",
+        "learningRate" : 0.0018,
+        "learningRateSchedule" : null,
+        "momentum" : "NaN",
+        "momentumSchedule" : null,
+        "nin" : 320,
+        "nout" : 250,
+        "rho" : "NaN",
+        "rmsDecay" : 0.95,
+        "updater" : "RMSPROP",
+        "weightInit" : "XAVIER"
+      }
+    },
+    "leakyreluAlpha" : 0.0,
+    "learningRateByParam" : { },
+    "learningRatePolicy" : "None",
+    "lrPolicyDecayRate" : "NaN",
+    "lrPolicyPower" : "NaN",
+    "lrPolicySteps" : "NaN",
+    "maxNumLineSearchIterations" : 5,
+    "miniBatch" : true,
+    "minimize" : true,
+    "numIterations" : 1500,
+    "optimizationAlgo" : "STOCHASTIC_GRADIENT_DESCENT",
+    "seed" : 1478244692380,
+    "stepFunction" : null,
+    "useDropConnect" : false,
+    "useRegularization" : true,
+    "variables" : [ ]
+  }, {
+    "extraArgs" : [ ],
+    "l1ByParam" : { },
+    "l2ByParam" : { },
+    "layer" : {
+      "rnnoutput" : {
+        "activationFunction" : "softmax",
+        "adamMeanDecay" : "NaN",
+        "adamVarDecay" : "NaN",
+        "biasInit" : 0.0,
+        "biasL1" : 0.0,
+        "biasL2" : 0.0,
+        "biasLearningRate" : 0.0018,
+        "customLossFunction" : null,
+        "dist" : null,
+        "dropOut" : 0.5,
+        "epsilon" : "NaN",
+        "gradientNormalization" : "ClipElementWiseAbsoluteValue",
+        "gradientNormalizationThreshold" : 1.0,
+        "l1" : 0.0,
+        "l2" : 1.0E-5,
+        "layerName" : "RnnOutputLayer",
+        "learningRate" : 0.0018,
+        "learningRateSchedule" : null,
+        "lossFn" : {
+          "MCXENT" : { }
+        },
+        "lossFunction" : "MCXENT",
+        "momentum" : "NaN",
+        "momentumSchedule" : null,
+        "nin" : 250,
+        "nout" : 28,
+        "rho" : "NaN",
+        "rmsDecay" : 0.95,
+        "updater" : "RMSPROP",
+        "weightInit" : "XAVIER"
+      }
+    },
+    "leakyreluAlpha" : 0.0,
+    "learningRateByParam" : { },
+    "learningRatePolicy" : "None",
+    "lrPolicyDecayRate" : "NaN",
+    "lrPolicyPower" : "NaN",
+    "lrPolicySteps" : "NaN",
+    "maxNumLineSearchIterations" : 5,
+    "miniBatch" : true,
+    "minimize" : true,
+    "numIterations" : 1500,
+    "optimizationAlgo" : "STOCHASTIC_GRADIENT_DESCENT",
+    "seed" : 1478244692380,
+    "stepFunction" : null,
+    "useDropConnect" : false,
+    "useRegularization" : true,
+    "variables" : [ ]
+  } ],
+  "inputPreProcessors" : { },
+  "pretrain" : false,
+  "tbpttBackLength" : 20,
+  "tbpttFwdLength" : 20
+}
+INFO - Completed Epoch 1
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.759
+ Precision: 0.8518
+ Recall:    0.6956
+ F1 Score:  0.7658
+ WPrecision: 0.825
+ WRecall:    0.759
+ WF1 Score:  0.7406
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.7333
+ Precision: 0.8096
+ Recall:    0.685
+ F1 Score:  0.7421
+ WPrecision: 0.8109
+ WRecall:    0.7333
+ WF1 Score:  0.7305
+========================================================================
+INFO - Completed Epoch 2
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8503
+ Precision: 0.8812
+ Recall:    0.8351
+ F1 Score:  0.8575
+ WPrecision: 0.8796
+ WRecall:    0.8503
+ WF1 Score:  0.8627
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.858
+ Precision: 0.8848
+ Recall:    0.8293
+ F1 Score:  0.8561
+ WPrecision: 0.8862
+ WRecall:    0.858
+ WF1 Score:  0.8636
+========================================================================
+INFO - Completed Epoch 3
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8774
+ Precision: 0.8959
+ Recall:    0.87
+ F1 Score:  0.8827
+ WPrecision: 0.893
+ WRecall:    0.8774
+ WF1 Score:  0.8704
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8609
+ Precision: 0.864
+ Recall:    0.828
+ F1 Score:  0.8456
+ WPrecision: 0.8833
+ WRecall:    0.8609
+ WF1 Score:  0.8687
+========================================================================
+INFO - Completed Epoch 4
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8865
+ Precision: 0.8979
+ Recall:    0.8801
+ F1 Score:  0.8889
+ WPrecision: 0.8953
+ WRecall:    0.8865
+ WF1 Score:  0.8812
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8638
+ Precision: 0.8701
+ Recall:    0.8369
+ F1 Score:  0.8532
+ WPrecision: 0.8825
+ WRecall:    0.8638
+ WF1 Score:  0.8629
+========================================================================
+INFO - Completed Epoch 5
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8952
+ Precision: 0.9068
+ Recall:    0.89
+ F1 Score:  0.8983
+ WPrecision: 0.903
+ WRecall:    0.8952
+ WF1 Score:  0.8917
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8736
+ Recall:    0.8407
+ F1 Score:  0.8568
+ WPrecision: 0.8842
+ WRecall:    0.8696
+ WF1 Score:  0.868
+========================================================================
+INFO - Completed Epoch 6
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9006
+ Precision: 0.9114
+ Recall:    0.8963
+ F1 Score:  0.9038
+ WPrecision: 0.9074
+ WRecall:    0.9006
+ WF1 Score:  0.8979
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.8652
+ Recall:    0.8221
+ F1 Score:  0.8431
+ WPrecision: 0.8806
+ WRecall:    0.8667
+ WF1 Score:  0.8654
+========================================================================
+INFO - Completed Epoch 7
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9055
+ Precision: 0.916
+ Recall:    0.9014
+ F1 Score:  0.9087
+ WPrecision: 0.9115
+ WRecall:    0.9055
+ WF1 Score:  0.9033
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8609
+ Precision: 0.8585
+ Recall:    0.8178
+ F1 Score:  0.8376
+ WPrecision: 0.8768
+ WRecall:    0.8609
+ WF1 Score:  0.8602
+========================================================================
+INFO - Completed Epoch 8
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9081
+ Precision: 0.9182
+ Recall:    0.9045
+ F1 Score:  0.9113
+ WPrecision: 0.9133
+ WRecall:    0.9081
+ WF1 Score:  0.9062
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8728
+ Recall:    0.8398
+ F1 Score:  0.8559
+ WPrecision: 0.8873
+ WRecall:    0.8696
+ WF1 Score:  0.8691
+========================================================================
+INFO - Completed Epoch 9
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9116
+ Precision: 0.9214
+ Recall:    0.9085
+ F1 Score:  0.9149
+ WPrecision: 0.9163
+ WRecall:    0.9116
+ WF1 Score:  0.9102
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8715
+ Recall:    0.8382
+ F1 Score:  0.8545
+ WPrecision: 0.8872
+ WRecall:    0.8696
+ WF1 Score:  0.8687
+========================================================================
+INFO - Completed Epoch 10
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9126
+ Precision: 0.9224
+ Recall:    0.9093
+ F1 Score:  0.9158
+ WPrecision: 0.9171
+ WRecall:    0.9126
+ WF1 Score:  0.9112
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8719
+ Recall:    0.8379
+ F1 Score:  0.8546
+ WPrecision: 0.8878
+ WRecall:    0.8696
+ WF1 Score:  0.8687
+========================================================================
+INFO - Completed Epoch 11
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9129
+ Precision: 0.9217
+ Recall:    0.91
+ F1 Score:  0.9158
+ WPrecision: 0.9166
+ WRecall:    0.9129
+ WF1 Score:  0.9117
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8741
+ Recall:    0.8379
+ F1 Score:  0.8556
+ WPrecision: 0.8883
+ WRecall:    0.8696
+ WF1 Score:  0.8688
+========================================================================
+INFO - Completed Epoch 12
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9148
+ Precision: 0.9233
+ Recall:    0.9121
+ F1 Score:  0.9177
+ WPrecision: 0.9184
+ WRecall:    0.9148
+ WF1 Score:  0.914
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8741
+ Recall:    0.8379
+ F1 Score:  0.8556
+ WPrecision: 0.8883
+ WRecall:    0.8696
+ WF1 Score:  0.8688
+========================================================================
+INFO - Completed Epoch 13
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9155
+ Precision: 0.9237
+ Recall:    0.9129
+ F1 Score:  0.9182
+ WPrecision: 0.9189
+ WRecall:    0.9155
+ WF1 Score:  0.9147
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8741
+ Recall:    0.8379
+ F1 Score:  0.8556
+ WPrecision: 0.8883
+ WRecall:    0.8696
+ WF1 Score:  0.8688
+========================================================================
+INFO - Completed Epoch 14
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9174
+ Precision: 0.926
+ Recall:    0.9152
+ F1 Score:  0.9206
+ WPrecision: 0.9205
+ WRecall:    0.9174
+ WF1 Score:  0.9167
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8696
+ Precision: 0.8739
+ Recall:    0.8381
+ F1 Score:  0.8556
+ WPrecision: 0.889
+ WRecall:    0.8696
+ WF1 Score:  0.869
+========================================================================
+INFO - Completed Epoch 15
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.92
+ Precision: 0.928
+ Recall:    0.9172
+ F1 Score:  0.9226
+ WPrecision: 0.9228
+ WRecall:    0.92
+ WF1 Score:  0.9194
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8638
+ Precision: 0.8667
+ Recall:    0.8326
+ F1 Score:  0.8493
+ WPrecision: 0.8817
+ WRecall:    0.8638
+ WF1 Score:  0.8632
+========================================================================
+INFO - Completed Epoch 16
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9216
+ Precision: 0.9296
+ Recall:    0.9194
+ F1 Score:  0.9245
+ WPrecision: 0.9244
+ WRecall:    0.9216
+ WF1 Score:  0.9212
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8638
+ Precision: 0.8667
+ Recall:    0.8326
+ F1 Score:  0.8493
+ WPrecision: 0.8817
+ WRecall:    0.8638
+ WF1 Score:  0.8632
+========================================================================
+INFO - Completed Epoch 17
+INFO - ***** Evaluation TRAIN DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.9229
+ Precision: 0.9306
+ Recall:    0.921
+ F1 Score:  0.9258
+ WPrecision: 0.9255
+ WRecall:    0.9229
+ WF1 Score:  0.9226
+========================================================================
+INFO - ***** Evaluation TEST DATA *****
+INFO - 
+
+==========================Scores========================================
+ Accuracy:  0.8667
+ Precision: 0.868
+ Recall:    0.8416
+ F1 Score:  0.8546
+ WPrecision: 0.8829
+ WRecall:    0.8667
+ WF1 Score:  0.8671
+========================================================================
