@@ -36,8 +36,8 @@ import scala.collection.mutable
 import scala.util.Try
 
 /**
-  * Created by acflorea on 15/10/2016.
-  */
+ * Created by acflorea on 15/10/2016.
+ */
 object ParagraphVector extends SparkOps {
 
   object Args {
@@ -53,7 +53,7 @@ object ParagraphVector extends SparkOps {
     @Parameter(
       names = Array("-f", "--inputFile"),
       description = "Input File name")
-    val inputFileName = "netbeansbugs_filtered.csv"
+    val inputFileName = "data/netbeansbugs_filtered.csv"
 
     @Parameter(
       names = Array("-ce", "--computeEmbeddings"),
@@ -93,10 +93,10 @@ object ParagraphVector extends SparkOps {
     .build()
 
   val filteredDataSchema: Schema = new Schema.Builder()
-    .addColumnsString("original_text")
-    //.addColumnCategorical("bug_severity", severityValues)
-    //.addColumnInteger("component_id")
-    //.addColumnInteger("product_id")
+    .addColumnsString("text")
+    .addColumnCategorical("bug_severity", severityValues)
+    .addColumnInteger("component_id")
+    .addColumnInteger("product_id")
     .addColumnInteger("class")
     .build()
 
@@ -128,10 +128,10 @@ object ParagraphVector extends SparkOps {
       //Let's remove some column we don't need
       //            .filter(new ConditionFilter(new IntegerColumnCondition("class", ConditionOp.GreaterOrEqual, 2)))
       //.filter(new ConditionFilter(new IntegerColumnCondition("component_id", ConditionOp.NotEqual, 128)))
-      //.removeAllColumnsExceptFor("text", "bug_severity", "component_id", "product_id", "class")
-      //.reorderColumns("text", "bug_severity", "component_id", "product_id", "class")
-      .removeAllColumnsExceptFor("text", "class")
-      .reorderColumns("text", "class")
+      .removeAllColumnsExceptFor("text", "bug_severity", "component_id", "product_id", "class")
+      .reorderColumns("text", "bug_severity", "component_id", "product_id", "class")
+      //.removeAllColumnsExceptFor("text", "class")
+      //.reorderColumns("text", "class")
       .build()
 
     // After executing all of these operations, we have a new and different schema:
@@ -166,8 +166,8 @@ object ParagraphVector extends SparkOps {
 
     val descs = filteredData.collect().map {
       writables =>
-        //if (Try(writables.get(2).toInt).isSuccess) components.put(writables.get(2).toInt, writables.get(2).toString)
-        //if (Try(writables.get(3).toInt).isSuccess) products.put(writables.get(3).toInt, writables.get(3).toString)
+        if (Try(writables.get(2).toInt).isSuccess) components.put(writables.get(2).toInt, writables.get(2).toString)
+        if (Try(writables.get(3).toInt).isSuccess) products.put(writables.get(3).toInt, writables.get(3).toString)
         if (Try(writables.last.toInt).isSuccess) distinctClasses += writables.last.toInt
         writables.get(0).toString
     }
@@ -218,11 +218,11 @@ object ParagraphVector extends SparkOps {
     //            Step 3.a: More transformations
     //=====================================================================
     val numericToCategoricalTransform: TransformProcess = new TransformProcess.Builder(filteredDataSchema)
-      //.integerToCategorical("component_id", components)
-      //.integerToCategorical("product_id", products)
-      //.categoricalToOneHot("bug_severity")
-      //.categoricalToOneHot("component_id")
-      //.categoricalToOneHot("product_id")
+      .integerToCategorical("component_id", components)
+      .integerToCategorical("product_id", products)
+      .categoricalToOneHot("bug_severity")
+      .categoricalToOneHot("component_id")
+      .categoricalToOneHot("product_id")
       .integerToCategorical("class", classes)
       .build()
 
@@ -239,7 +239,7 @@ object ParagraphVector extends SparkOps {
         data().asDouble().map(new DoubleWritable(_)) ++ row.drop(1))
     }
 
-    val featureSpaceSize = paragraphVectors.getLayerSize // + components.size() + products.size() + severityValues.size()
+    val featureSpaceSize = paragraphVectors.getLayerSize + components.size() + products.size() + severityValues.size()
 
     val batchSize = 100
     val averagingFrequency = 5
@@ -289,8 +289,6 @@ object ParagraphVector extends SparkOps {
         .build())
       .pretrain(false).backprop(true).build
 
-    log.info(s"Network configuration ${rnn_conf.toString}")
-
     val seed = 12345
 
     val deep_conf = new NeuralNetConfiguration.Builder()
@@ -298,18 +296,36 @@ object ParagraphVector extends SparkOps {
       .iterations(iterations)
       .optimizationAlgo(OptimizationAlgorithm.LINE_GRADIENT_DESCENT)
       .list()
-      .layer(0, new RBM.Builder().nIn(featureSpaceSize).nOut(1000).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(1, new RBM.Builder().nIn(1000).nOut(1000).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(2, new RBM.Builder().nIn(1000).nOut(1000).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(3, new RBM.Builder().nIn(1000).nOut(1000).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(4, new RBM.Builder().nIn(1000).nOut(1000).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(5, new OutputLayer.Builder(LossFunctions.LossFunction.MSE).activation("sigmoid").nIn(1000).nOut(outputNum).build())
+      .layer(0, new RBM.Builder().nIn(featureSpaceSize).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(1, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(2, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(3, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(4, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(5, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(6, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(7, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(8, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(9, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(10, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(11, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(12, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(13, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(14, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(15, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(16, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(17, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(18, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(19, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(20, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(21, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(22, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(23, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(24, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(25, new OutputLayer.Builder(LossFunctions.LossFunction.MSE).activation("sigmoid").nIn(50).nOut(outputNum).build())
       .pretrain(true).backprop(true)
       .build()
 
-
-    //run the model
-    val model: MultiLayerNetwork = new MultiLayerNetwork(deep_conf)
+    log.info(s"Network configuration ${rnn_conf.toString}")
 
     val tm = new ParameterAveragingTrainingMaster.Builder(batchSize)
       .averagingFrequency(averagingFrequency)
