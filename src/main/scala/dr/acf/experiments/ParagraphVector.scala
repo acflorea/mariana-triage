@@ -4,6 +4,7 @@ import java.io.File
 import java.util
 import java.util.TimeZone
 
+import com.beust.jcommander.{JCommander, Parameter}
 import dr.acf.utils.{SmartEvaluation, SparkOps, WordVectorSmartSerializer}
 import org.apache.spark.rdd.RDD
 import org.datavec.api.records.reader.RecordReader
@@ -11,7 +12,6 @@ import org.datavec.api.records.reader.impl.collection.CollectionRecordReader
 import org.datavec.api.records.reader.impl.csv.CSVRecordReader
 import org.datavec.api.transform.TransformProcess
 import org.datavec.api.transform.schema.Schema
-import org.datavec.api.util.ClassPathResource
 import org.datavec.api.writable.{DoubleWritable, Writable}
 import org.datavec.spark.transform.SparkTransformExecutor
 import org.datavec.spark.transform.misc.StringToWritablesFunction
@@ -40,13 +40,36 @@ import scala.util.Try
   */
 object ParagraphVector extends SparkOps {
 
-  val inputFileName = "netbeansbugs_filtered.csv"
-  val computeEmbeddings = false
-  val epochsForEmbeddings = 20
-  val modelName = if (epochsForEmbeddings < 10)
-    s"netbeans_0$epochsForEmbeddings.model"
+  object Args {
+    // Declared as var because JCommander assigns a new collection declared
+    // as java.util.List because that's what JCommander will replace it with.
+    // It'd be nice if JCommander would just use the provided List so this
+    // could be a val and a Scala LinkedList.
+    @Parameter(
+      names = Array("-rf", "--resourceFolder"),
+      description = "Location of resource files.")
+    var resourceFolder: String = "/Users/triage/"
+
+    @Parameter(
+      names = Array("-f", "--inputFile"),
+      description = "Input File name")
+    val inputFileName = "netbeansbugs_filtered.csv"
+
+    @Parameter(
+      names = Array("-ce", "--computeEmbeddings"),
+      description = "Weather to compute the embedings or attempt to load an existing model")
+    val computeEmbeddings = false
+
+    @Parameter(
+      names = Array("-ep", "--epochs"),
+      description = "Nomber of epochs for embedings")
+    val epochsForEmbeddings = 20
+  }
+
+  lazy val modelName = if (Args.epochsForEmbeddings < 10)
+    s"netbeans_0${Args.epochsForEmbeddings}.model"
   else
-    s"netbeans_$epochsForEmbeddings.model"
+    s"netbeans_${Args.epochsForEmbeddings}.model"
 
   val severityValues = util.Arrays.asList("normal", "enhancement", "major", "trivial", "critical", "minor", "blocker")
   val statusValues = util.Arrays.asList("CLOSED", "RESOLVED", "VERIFIED", "trivial", "critical", "minor")
@@ -81,7 +104,13 @@ object ParagraphVector extends SparkOps {
 
   def main(args: Array[String]): Unit = {
 
-    System.out.println("OMP_NUM_THREADS " + System.getenv().get("OMP_NUM_THREADS"))
+    // Initialize jCommander
+    new JCommander(Args, args.toArray: _*)
+
+    log.debug(s"Resource folder is ${Args.resourceFolder}")
+    log.debug(s"Input file is ${Args.inputFileName}")
+    log.debug(s"Compute embeddings is ${Args.computeEmbeddings}")
+    log.debug(s"Number of embedding epochs is ${Args.epochsForEmbeddings}")
 
     //Print out the schema:
     log.info("Input data schema details:")
@@ -115,7 +144,7 @@ object ParagraphVector extends SparkOps {
     //=====================================================================
     //            Step 2.b: Transform
     //=====================================================================
-    val directory: String = new ClassPathResource(inputFileName).getFile.getPath
+    val directory: String = Args.resourceFolder + Args.inputFileName
     val stringData: RDD[String] = sc.textFile(directory)
 
     //We first need to parse this format. It's comma-delimited (CSV) format, so let's parse it using CSVRecordReader:
@@ -159,12 +188,12 @@ object ParagraphVector extends SparkOps {
     val tokenizerFactory = new DefaultTokenizerFactory
     tokenizerFactory.setTokenPreProcessor(new CommonPreprocessor)
 
-    val paragraphVectors = if (computeEmbeddings) {
+    val paragraphVectors = if (Args.computeEmbeddings) {
 
       // ParagraphVectors training configuration
       val _paragraphVectors = new ParagraphVectors.Builder()
         .learningRate(0.025).minLearningRate(0.001)
-        .batchSize(2500).epochs(epochsForEmbeddings)
+        .batchSize(2500).epochs(Args.epochsForEmbeddings)
         .iterate(ptvIterator).trainWordVectors(true)
         .tokenizerFactory(tokenizerFactory).build
 
@@ -172,12 +201,12 @@ object ParagraphVector extends SparkOps {
       _paragraphVectors.fit()
 
       log.info("Save vectors....")
-      WordVectorSmartSerializer.writeParagraphVectors(_paragraphVectors, modelName)
+      WordVectorSmartSerializer.writeParagraphVectors(_paragraphVectors, Args.resourceFolder + modelName)
       _paragraphVectors
 
     } else {
 
-      val _paragraphVectors = WordVectorSmartSerializer.readParagraphVectors(new File(modelName))
+      val _paragraphVectors = WordVectorSmartSerializer.readParagraphVectors(new File(Args.resourceFolder + modelName))
       _paragraphVectors.setTokenizerFactory(tokenizerFactory)
       _paragraphVectors
 
