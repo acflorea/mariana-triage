@@ -180,8 +180,6 @@ object ParagraphVector extends SparkOps {
     //            PARAGRAPH VECTOR !!!
     //=====================================================================
 
-    log.info("Build Embedded Vectors ....")
-
     // build a iterator for our dataset
     val ptvIterator = new CollectionSentenceIterator(descs.flatMap(_.split("\\. ")).toList)
     //
@@ -190,6 +188,7 @@ object ParagraphVector extends SparkOps {
 
     val paragraphVectors = if (Args.computeEmbeddings) {
 
+      log.info("Build Embedded Vectors ....")
       // ParagraphVectors training configuration
       val _paragraphVectors = new ParagraphVectors.Builder()
         .learningRate(0.025).minLearningRate(0.001)
@@ -206,6 +205,7 @@ object ParagraphVector extends SparkOps {
 
     } else {
 
+      log.info("Load Embedded Vectors ....")
       val _paragraphVectors = WordVectorSmartSerializer.readParagraphVectors(new File(Args.resourceFolder + modelName))
       _paragraphVectors.setTokenizerFactory(tokenizerFactory)
       _paragraphVectors
