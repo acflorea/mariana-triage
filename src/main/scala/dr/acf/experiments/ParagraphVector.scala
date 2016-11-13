@@ -57,19 +57,25 @@ object ParagraphVector extends SparkOps {
 
     @Parameter(
       names = Array("-ce", "--computeEmbeddings"),
-      description = "Weather to compute the embedings or attempt to load an existing model")
+      description = "Weather to compute the embeddings or attempt to load an existing model")
     val computeEmbeddings = false
 
     @Parameter(
       names = Array("-ep", "--epochs"),
-      description = "Nomber of epochs for embedings")
+      description = "Number of epochs for embeddings")
     val epochsForEmbeddings = 20
+
+    @Parameter(
+      names = Array("-m", "--model"),
+      description = "Name of model file to user")
+    val model = "netbeans"
+
   }
 
   lazy val modelName = if (Args.epochsForEmbeddings < 10)
-    s"netbeans_0${Args.epochsForEmbeddings}.model"
+    s"${Args.model}_0${Args.epochsForEmbeddings}.model"
   else
-    s"netbeans_${Args.epochsForEmbeddings}.model"
+    s"${Args.model}_${Args.epochsForEmbeddings}.model"
 
   val severityValues = util.Arrays.asList("normal", "enhancement", "major", "trivial", "critical", "minor", "blocker")
   val statusValues = util.Arrays.asList("CLOSED", "RESOLVED", "VERIFIED", "trivial", "critical", "minor")
@@ -191,6 +197,7 @@ object ParagraphVector extends SparkOps {
       log.info("Build Embedded Vectors ....")
       // ParagraphVectors training configuration
       val _paragraphVectors = new ParagraphVectors.Builder()
+        .layerSize(50)
         .learningRate(0.025).minLearningRate(0.001)
         .batchSize(2500).epochs(Args.epochsForEmbeddings)
         .iterate(ptvIterator).trainWordVectors(true)
@@ -245,9 +252,9 @@ object ParagraphVector extends SparkOps {
     val averagingFrequency = 5
 
     val outputNum = possibleLabels
-    val iterations = 1000
+    val iterations = 500
 
-    val layer1width = 50
+    val layer1width = 250
     val learningRate = 0.0018
     val activation = "softsign"
 
@@ -296,32 +303,32 @@ object ParagraphVector extends SparkOps {
       .iterations(iterations)
       .optimizationAlgo(OptimizationAlgorithm.LINE_GRADIENT_DESCENT)
       .list()
-      .layer(0, new RBM.Builder().nIn(featureSpaceSize).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(1, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(2, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(3, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(4, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(5, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(6, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(7, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(8, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(9, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(10, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(11, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(12, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(13, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(14, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(15, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(16, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(17, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(18, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(19, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(20, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(21, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(22, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(23, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(24, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(25, new OutputLayer.Builder(LossFunctions.LossFunction.MSE).activation("sigmoid").nIn(50).nOut(outputNum).build())
+      .layer(0, new RBM.Builder().nIn(featureSpaceSize).nOut(500).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(1, new RBM.Builder().nIn(500).nOut(500).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(2, new RBM.Builder().nIn(500).nOut(500).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(3, new RBM.Builder().nIn(500).nOut(500).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(4, new RBM.Builder().nIn(500).nOut(500).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(5, new RBM.Builder().nIn(500).nOut(500).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+    //  .layer(6, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+    //  .layer(7, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+    //  .layer(8, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+    //  .layer(9, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+    //  .layer(10, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+    //  .layer(11, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+    //  .layer(12, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+    //  .layer(13, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+    //  .layer(14, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+    //  .layer(15, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+//      .layer(16, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+ //     .layer(17, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+  //    .layer(18, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+  //    .layer(19, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+ //     .layer(20, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+  //    .layer(21, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+  //    .layer(22, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+   //   .layer(23, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+//      .layer(24, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(6, new OutputLayer.Builder(LossFunctions.LossFunction.MSE).activation("sigmoid").nIn(500).nOut(outputNum).build())
       .pretrain(true).backprop(true)
       .build()
 
