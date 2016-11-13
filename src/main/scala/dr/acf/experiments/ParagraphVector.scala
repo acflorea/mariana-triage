@@ -17,6 +17,10 @@ import org.datavec.spark.transform.SparkTransformExecutor
 import org.datavec.spark.transform.misc.StringToWritablesFunction
 import org.deeplearning4j.datasets.datavec.RecordReaderDataSetIterator
 import org.deeplearning4j.models.paragraphvectors.ParagraphVectors
+import org.deeplearning4j.models.sequencevectors.SequenceVectors
+import org.deeplearning4j.models.sequencevectors.enums.ListenerEvent
+import org.deeplearning4j.models.sequencevectors.interfaces.VectorsListener
+import org.deeplearning4j.models.word2vec.VocabWord
 import org.deeplearning4j.nn.api.OptimizationAlgorithm
 import org.deeplearning4j.nn.conf._
 import org.deeplearning4j.nn.conf.inputs.InputType
@@ -192,11 +196,33 @@ object ParagraphVector extends SparkOps {
     val tokenizerFactory = new DefaultTokenizerFactory
     tokenizerFactory.setTokenPreProcessor(new CommonPreprocessor)
 
+    // Lister to store model at each phase
+    val vectorListener = new VectorsListener[VocabWord] {
+      override def processEvent(event: ListenerEvent, sequenceVectors: SequenceVectors[VocabWord], argument: Long) = {
+        event match {
+          case ListenerEvent.EPOCH if (argument % 3 == 0) =>
+            log.info("Save vectors....")
+            lazy val _modelName = if (argument < 10)
+              s"${Args.model}_0$argument.model"
+            else
+              s"${Args.model}_$argument.model"
+            WordVectorSmartSerializer
+              .writeParagraphVectors(sequenceVectors.asInstanceOf[ParagraphVectors], Args.resourceFolder + modelName)
+          case _ =>
+        }
+      }
+
+      override def validateEvent(event: ListenerEvent, argument: Long): Boolean = true
+    }
+
     val paragraphVectors = if (Args.computeEmbeddings) {
 
       log.info("Build Embedded Vectors ....")
       // ParagraphVectors training configuration
       val _paragraphVectors = new ParagraphVectors.Builder()
+        .setVectorsListeners(new util.ArrayList[VectorsListener[VocabWord]] {
+          vectorListener
+        })
         .layerSize(50)
         .learningRate(0.025).minLearningRate(0.001)
         .batchSize(2500).epochs(Args.epochsForEmbeddings)
