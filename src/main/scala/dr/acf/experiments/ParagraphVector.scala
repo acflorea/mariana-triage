@@ -385,9 +385,9 @@ object ParagraphVector extends SparkOps {
     val numEpochs = 150
 
     //Perform evaluation (distributed)
-    val testData = sc.parallelize(testIterator.toList)
+    val testData = sc.parallelize(testIterator.toList).cache()
+    val trainingData = sc.parallelize(trainIterator.toList).cache()
 
-    val trainingData = sc.parallelize(trainIterator.toList)
     (1 to numEpochs) foreach { i =>
       sparkNet.fit(trainingData)
       log.info(s"Completed Epoch $i")
