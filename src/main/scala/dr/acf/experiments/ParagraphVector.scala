@@ -19,8 +19,8 @@ import org.deeplearning4j.datasets.datavec.RecordReaderDataSetIterator
 import org.deeplearning4j.models.paragraphvectors.ParagraphVectors
 import org.deeplearning4j.nn.api.OptimizationAlgorithm
 import org.deeplearning4j.nn.conf._
-import org.deeplearning4j.nn.conf.layers.{GravesLSTM, OutputLayer, RBM, RnnOutputLayer}
-import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
+import org.deeplearning4j.nn.conf.inputs.InputType
+import org.deeplearning4j.nn.conf.layers._
 import org.deeplearning4j.nn.weights.WeightInit
 import org.deeplearning4j.spark.impl.multilayer.SparkDl4jMultiLayer
 import org.deeplearning4j.spark.impl.paramavg.ParameterAveragingTrainingMaster
@@ -36,8 +36,8 @@ import scala.collection.mutable
 import scala.util.Try
 
 /**
- * Created by acflorea on 15/10/2016.
- */
+  * Created by acflorea on 15/10/2016.
+  */
 object ParagraphVector extends SparkOps {
 
   object Args {
@@ -48,12 +48,12 @@ object ParagraphVector extends SparkOps {
     @Parameter(
       names = Array("-rf", "--resourceFolder"),
       description = "Location of resource files.")
-    var resourceFolder: String = "/Users/triage/"
+    var resourceFolder: String = "/Uers/aflorea/php/mariana-triage/data"
 
     @Parameter(
       names = Array("-f", "--inputFile"),
       description = "Input File name")
-    val inputFileName = "data/netbeansbugs_filtered.csv"
+    val inputFileName = "netbeansbugs_filtered.csv"
 
     @Parameter(
       names = Array("-ce", "--computeEmbeddings"),
@@ -275,6 +275,21 @@ object ParagraphVector extends SparkOps {
     log.info("Build model....")
     log.info(s"Number of iterations $iterations")
 
+    log.info("Build model....")
+    val cnn_conf: MultiLayerConfiguration = new NeuralNetConfiguration.Builder()
+      .seed(12345).iterations(iterations).regularization(true).l2(0.0005).learningRate(.01)
+      .weightInit(WeightInit.XAVIER).optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
+      .updater(Updater.NESTEROVS).momentum(0.9)
+      .list
+      .layer(0, new ConvolutionLayer.Builder(5, 5).nIn(layer1width).stride(1, 1).nOut(20).activation("identity").build())
+      .layer(1, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX).kernelSize(2, 2).stride(2, 2).build())
+      .layer(2, new ConvolutionLayer.Builder(5, 5).stride(1, 1).nOut(50).activation("identity").build())
+      .layer(3, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX).kernelSize(2, 2).stride(2, 2).build())
+      .layer(4, new DenseLayer.Builder().activation("relu").nOut(500).build())
+      .layer(5, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).nOut(outputNum).activation("softmax").build())
+      .setInputType(InputType.feedForward(layer1width))
+      .backprop(true).pretrain(false).build()
+
     //Set up network configuration
     val rnn_conf: MultiLayerConfiguration = new NeuralNetConfiguration.Builder()
       .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
@@ -309,30 +324,30 @@ object ParagraphVector extends SparkOps {
       .layer(3, new RBM.Builder().nIn(500).nOut(500).lossFunction(LossFunctions.LossFunction.MCXENT).build())
       .layer(4, new RBM.Builder().nIn(500).nOut(500).lossFunction(LossFunctions.LossFunction.MCXENT).build())
       .layer(5, new RBM.Builder().nIn(500).nOut(500).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-    //  .layer(6, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-    //  .layer(7, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-    //  .layer(8, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-    //  .layer(9, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-    //  .layer(10, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-    //  .layer(11, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-    //  .layer(12, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-    //  .layer(13, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-    //  .layer(14, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-    //  .layer(15, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-//      .layer(16, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
- //     .layer(17, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-  //    .layer(18, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-  //    .layer(19, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
- //     .layer(20, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-  //    .layer(21, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-  //    .layer(22, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-   //   .layer(23, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-//      .layer(24, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(6, new OutputLayer.Builder(LossFunctions.LossFunction.MSE).activation("sigmoid").nIn(500).nOut(outputNum).build())
+      .layer(6, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(7, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(8, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(9, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(10, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(11, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(12, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(13, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(14, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(15, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(16, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(17, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(18, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(19, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(20, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(21, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(22, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(23, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(24, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(25, new OutputLayer.Builder(LossFunctions.LossFunction.MSE).activation("sigmoid").nIn(500).nOut(outputNum).build())
       .pretrain(true).backprop(true)
       .build()
 
-    log.info(s"Network configuration ${rnn_conf.toString}")
+    log.info(s"Network configuration ${cnn_conf.toString}")
 
     val tm = new ParameterAveragingTrainingMaster.Builder(batchSize)
       .averagingFrequency(averagingFrequency)
@@ -341,7 +356,7 @@ object ParagraphVector extends SparkOps {
       .build()
 
     //Create the Spark network
-    val sparkNet = new SparkDl4jMultiLayer(sc, rnn_conf, tm)
+    val sparkNet = new SparkDl4jMultiLayer(sc, cnn_conf, tm)
 
     //Execute training:
     val numEpochs = 150
