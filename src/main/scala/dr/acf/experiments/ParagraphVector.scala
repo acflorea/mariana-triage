@@ -48,7 +48,7 @@ object ParagraphVector extends SparkOps {
     @Parameter(
       names = Array("-rf", "--resourceFolder"),
       description = "Location of resource files.")
-    var resourceFolder: String = "/Uers/aflorea/php/mariana-triage/data"
+    var resourceFolder: String = "/Uers/aflorea/phd/mariana-triage/data"
 
     @Parameter(
       names = Array("-f", "--inputFile"),
@@ -241,10 +241,25 @@ object ParagraphVector extends SparkOps {
 
     val possibleLabels: Int = classes.size()
 
-    val data = transformedData.collect().toList.collect { case row if row.head.toString.nonEmpty =>
-      seqAsJavaList(paragraphVectors.inferVector(row.head.toString).
-        data().asDouble().map(new DoubleWritable(_)) ++ row.drop(1))
-    }
+    val pv = sc.broadcast(paragraphVectors)
+
+    val broadcastPV = false
+
+    val data =
+      if (broadcastPV) {
+        transformedData.mapPartitions {
+          _ map {
+            case row if row.head.toString.nonEmpty =>
+              seqAsJavaList(pv.value.inferVector(row.head.toString).
+                data().asDouble().map(new DoubleWritable(_)) ++ row.drop(1))
+          }
+        }.collect().toList
+      } else {
+        transformedData.collect().toList.collect { case row if row.head.toString.nonEmpty =>
+          seqAsJavaList(paragraphVectors.inferVector(row.head.toString).
+            data().asDouble().map(new DoubleWritable(_)) ++ row.drop(1))
+        }
+      }
 
     val featureSpaceSize = paragraphVectors.getLayerSize + components.size() + products.size() + severityValues.size()
 
@@ -274,20 +289,29 @@ object ParagraphVector extends SparkOps {
 
     log.info("Build model....")
     log.info(s"Number of iterations $iterations")
+    log.info(s"Number of features $featureSpaceSize")
 
-    log.info("Build model....")
+    val seed = 12345
+
     val cnn_conf: MultiLayerConfiguration = new NeuralNetConfiguration.Builder()
       .seed(12345).iterations(iterations).regularization(true).l2(0.0005).learningRate(.01)
       .weightInit(WeightInit.XAVIER).optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
       .updater(Updater.NESTEROVS).momentum(0.9)
       .list
-      .layer(0, new ConvolutionLayer.Builder(5, 5).nIn(layer1width).stride(1, 1).nOut(20).activation("identity").build())
-      .layer(1, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX).kernelSize(2, 2).stride(2, 2).build())
-      .layer(2, new ConvolutionLayer.Builder(5, 5).stride(1, 1).nOut(50).activation("identity").build())
-      .layer(3, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX).kernelSize(2, 2).stride(2, 2).build())
+      .layer(0, new ConvolutionLayer.Builder(1, 5).name("conv1")
+        // nIn is the number of channels, nOut is the number of filters to be applied
+        .nIn(1).stride(1, 1).nOut(20)
+        .activation("identity").build())
+      .layer(1, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX).name("pooling_1")
+        .kernelSize(1, 2).stride(1, 1).build())
+      .layer(2, new ConvolutionLayer.Builder(1, 5).name("conv2")
+        .stride(1, 1).nOut(50).activation("identity").build())
+      .layer(3, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX).name("pooling_2")
+        .kernelSize(1, 2).stride(1, 1).build())
       .layer(4, new DenseLayer.Builder().activation("relu").nOut(500).build())
       .layer(5, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).nOut(outputNum).activation("softmax").build())
-      .setInputType(InputType.feedForward(layer1width))
+      // height, width, depth
+      .setInputType(InputType.convolutionalFlat(1, featureSpaceSize, 1))
       .backprop(true).pretrain(false).build()
 
     //Set up network configuration
@@ -311,7 +335,6 @@ object ParagraphVector extends SparkOps {
         .build())
       .pretrain(false).backprop(true).build
 
-    val seed = 12345
 
     val deep_conf = new NeuralNetConfiguration.Builder()
       .seed(seed)
