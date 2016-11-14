@@ -14,6 +14,8 @@ trait SparkOps {
   conf.setMaster("local[*]")
   conf.setAppName("mariana-triage")
   conf.set("spark.driver.maxResultSize", "2g")
+  conf.set("spark.executor.extraJavaOptions", "-Dorg.bytedeco.javacpp.maxbytes=5368709120")
+  conf.set("spark.driver.extraJavaOptions", "-Dorg.bytedeco.javacpp.maxbytes=5368709120")
 
   lazy val sc: SparkContext = {
     val _sc = new SparkContext(conf)

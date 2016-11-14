@@ -7,6 +7,7 @@ import java.util.TimeZone
 import com.beust.jcommander.{JCommander, Parameter}
 import dr.acf.utils.{SmartEvaluation, SparkOps, WordVectorSmartSerializer}
 import org.apache.spark.rdd.RDD
+import org.apache.spark.storage.StorageLevel
 import org.datavec.api.records.reader.RecordReader
 import org.datavec.api.records.reader.impl.collection.CollectionRecordReader
 import org.datavec.api.records.reader.impl.csv.CSVRecordReader
@@ -370,12 +371,12 @@ object ParagraphVector extends SparkOps {
       .iterations(iterations)
       .optimizationAlgo(OptimizationAlgorithm.LINE_GRADIENT_DESCENT)
       .list()
-      .layer(0, new RBM.Builder().nIn(featureSpaceSize).nOut(500).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(1, new RBM.Builder().nIn(500).nOut(500).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(2, new RBM.Builder().nIn(500).nOut(500).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(3, new RBM.Builder().nIn(500).nOut(500).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(4, new RBM.Builder().nIn(500).nOut(500).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(5, new RBM.Builder().nIn(500).nOut(500).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(0, new RBM.Builder().nIn(featureSpaceSize).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(1, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(2, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(3, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(4, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
+      .layer(5, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
       .layer(6, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
       .layer(7, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
       .layer(8, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
@@ -395,7 +396,7 @@ object ParagraphVector extends SparkOps {
       .layer(22, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
       .layer(23, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
       .layer(24, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(25, new OutputLayer.Builder(LossFunctions.LossFunction.MSE).activation("sigmoid").nIn(500).nOut(outputNum).build())
+      .layer(25, new OutputLayer.Builder(LossFunctions.LossFunction.MSE).activation("sigmoid").nIn(50).nOut(outputNum).build())
       .pretrain(true).backprop(true)
       .build()
 
@@ -421,8 +422,10 @@ object ParagraphVector extends SparkOps {
     val numEpochs = 150
 
     //Perform evaluation (distributed)
-    val testData = sc.parallelize(testIterator.toList)
-    val trainingData = sc.parallelize(trainIterator.toList)
+    val testData = sc.parallelize(testIterator.toList).persist(StorageLevel.MEMORY_AND_DISK_SER)
+    val trainingData = sc.parallelize(trainIterator.toList).persist(StorageLevel.MEMORY_AND_DISK_SER)
+
+    log.info(s"Start training!!!")
 
     (1 to numEpochs) foreach { i =>
       sparkNet.fit(trainingData)
