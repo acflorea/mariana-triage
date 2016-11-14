@@ -272,12 +272,10 @@ object ParagraphVector extends SparkOps {
 
     val possibleLabels: Int = classes.size()
 
-    val pv = sc.broadcast(paragraphVectors)
-
     val broadcastPV = false
-
     val data =
       if (broadcastPV) {
+        val pv = sc.broadcast(paragraphVectors)
         transformedData.mapPartitions {
           _ map {
             case row if row.head.toString.nonEmpty =>
@@ -423,8 +421,8 @@ object ParagraphVector extends SparkOps {
     val numEpochs = 150
 
     //Perform evaluation (distributed)
-    val testData = sc.parallelize(testIterator.toList).cache()
-    val trainingData = sc.parallelize(trainIterator.toList).cache()
+    val testData = sc.parallelize(testIterator.toList)
+    val trainingData = sc.parallelize(trainIterator.toList)
 
     (1 to numEpochs) foreach { i =>
       sparkNet.fit(trainingData)
