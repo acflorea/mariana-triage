@@ -74,6 +74,11 @@ object ParagraphVector extends SparkOps {
       description = "Name of model file to user")
     val model = "netbeans"
 
+    @Parameter(
+      names = Array("-a", "--architecture"),
+      description = "Type of the architecture to use")
+    val architecture = "rnn" // rnn, cnn, deep
+
   }
 
   lazy val modelName = if (Args.epochsForEmbeddings < 10)
@@ -200,7 +205,7 @@ object ParagraphVector extends SparkOps {
     val vectorListener = new VectorsListener[VocabWord] {
       override def processEvent(event: ListenerEvent, sequenceVectors: SequenceVectors[VocabWord], argument: Long) = {
         event match {
-          case ListenerEvent.EPOCH if (argument % 3 == 0) =>
+          case ListenerEvent.EPOCH if argument % 3 == 0 =>
             log.info("Save vectors....")
             lazy val _modelName = if (argument < 10)
               s"${Args.model}_0$argument.model"
@@ -396,7 +401,14 @@ object ParagraphVector extends SparkOps {
       .pretrain(true).backprop(true)
       .build()
 
-    log.info(s"Network configuration ${cnn_conf.toString}")
+    log.info(s"Architecture ${Args.architecture}")
+    val active_conf = Args.architecture match {
+      case "cnn" => cnn_conf
+      case "rnn" => rnn_conf
+      case "deep" => deep_conf
+    }
+
+    log.info(s"Network configuration ${active_conf.toString}")
 
     val tm = new ParameterAveragingTrainingMaster.Builder(batchSize)
       .averagingFrequency(averagingFrequency)
@@ -405,7 +417,7 @@ object ParagraphVector extends SparkOps {
       .build()
 
     //Create the Spark network
-    val sparkNet = new SparkDl4jMultiLayer(sc, cnn_conf, tm)
+    val sparkNet = new SparkDl4jMultiLayer(sc, active_conf, tm)
 
     //Execute training:
     val numEpochs = 150
