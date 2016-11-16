@@ -25,6 +25,7 @@ import org.deeplearning4j.models.word2vec.VocabWord
 import org.deeplearning4j.nn.api.OptimizationAlgorithm
 import org.deeplearning4j.nn.conf._
 import org.deeplearning4j.nn.conf.inputs.InputType
+import org.deeplearning4j.nn.conf.layers.RBM.{HiddenUnit, VisibleUnit}
 import org.deeplearning4j.nn.conf.layers._
 import org.deeplearning4j.nn.weights.WeightInit
 import org.deeplearning4j.spark.impl.multilayer.SparkDl4jMultiLayer
@@ -299,7 +300,7 @@ object ParagraphVector extends SparkOps {
     val outputNum = possibleLabels
     val iterations = 500
 
-    val layer1width = 250
+    val layer1width = 100
     val learningRate = 0.0018
     val activation = "softsign"
 
@@ -369,35 +370,55 @@ object ParagraphVector extends SparkOps {
     val deep_conf = new NeuralNetConfiguration.Builder()
       .seed(seed)
       .iterations(iterations)
-      .optimizationAlgo(OptimizationAlgorithm.LINE_GRADIENT_DESCENT)
+      .optimizationAlgo(OptimizationAlgorithm.LBFGS)
       .list()
-      .layer(0, new RBM.Builder().nIn(featureSpaceSize).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(1, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(2, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(3, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(4, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(5, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(6, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(7, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(8, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(9, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(10, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(11, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(12, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(13, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(14, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(15, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(16, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(17, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(18, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(19, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(20, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(21, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(22, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(23, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(24, new RBM.Builder().nIn(50).nOut(50).lossFunction(LossFunctions.LossFunction.MCXENT).build())
-      .layer(25, new OutputLayer.Builder(LossFunctions.LossFunction.MSE).activation("sigmoid").nIn(50).nOut(outputNum).build())
-      .pretrain(true).backprop(true)
+      .layer(0, new RBM.Builder().l2(1e-1).l1(1e-3)
+        .nIn(featureSpaceSize) // Input nodes
+        .nOut(layer1width) // Output nodes
+        .activation("relu") // Activation function type
+        .weightInit(WeightInit.RELU) // Weight initialization
+        .lossFunction(LossFunctions.LossFunction.RECONSTRUCTION_CROSSENTROPY).k(3)
+        .hiddenUnit(HiddenUnit.RECTIFIED).visibleUnit(VisibleUnit.GAUSSIAN)
+        .updater(Updater.ADAGRAD).gradientNormalization(GradientNormalization.ClipL2PerLayer)
+        .build())
+      .layer(1, new RBM.Builder().l2(1e-1).l1(1e-3)
+        .nIn(layer1width) // Input nodes
+        .nOut(layer1width) // Output nodes
+        .activation("relu") // Activation function type
+        .weightInit(WeightInit.RELU) // Weight initialization
+        .lossFunction(LossFunctions.LossFunction.RECONSTRUCTION_CROSSENTROPY).k(3)
+        .hiddenUnit(HiddenUnit.RECTIFIED).visibleUnit(VisibleUnit.GAUSSIAN)
+        .updater(Updater.ADAGRAD).gradientNormalization(GradientNormalization.ClipL2PerLayer)
+        .build())
+      .layer(2, new RBM.Builder().l2(1e-1).l1(1e-3)
+        .nIn(layer1width) // Input nodes
+        .nOut(layer1width) // Output nodes
+        .activation("relu") // Activation function type
+        .weightInit(WeightInit.RELU) // Weight initialization
+        .lossFunction(LossFunctions.LossFunction.RECONSTRUCTION_CROSSENTROPY).k(3)
+        .hiddenUnit(HiddenUnit.RECTIFIED).visibleUnit(VisibleUnit.GAUSSIAN)
+        .updater(Updater.ADAGRAD).gradientNormalization(GradientNormalization.ClipL2PerLayer)
+        .build())
+      .layer(3, new RBM.Builder().l2(1e-1).l1(1e-3)
+        .nIn(layer1width) // Input nodes
+        .nOut(layer1width) // Output nodes
+        .activation("relu") // Activation function type
+        .weightInit(WeightInit.RELU) // Weight initialization
+        .lossFunction(LossFunctions.LossFunction.RECONSTRUCTION_CROSSENTROPY).k(3)
+        .hiddenUnit(HiddenUnit.RECTIFIED).visibleUnit(VisibleUnit.GAUSSIAN)
+        .updater(Updater.ADAGRAD).gradientNormalization(GradientNormalization.ClipL2PerLayer)
+        .build())
+      .layer(4, new RBM.Builder().l2(1e-1).l1(1e-3)
+        .nIn(layer1width) // Input nodes
+        .nOut(layer1width) // Output nodes
+        .activation("relu") // Activation function type
+        .weightInit(WeightInit.RELU) // Weight initialization
+        .lossFunction(LossFunctions.LossFunction.RECONSTRUCTION_CROSSENTROPY).k(3)
+        .hiddenUnit(HiddenUnit.RECTIFIED).visibleUnit(VisibleUnit.GAUSSIAN)
+        .updater(Updater.ADAGRAD).gradientNormalization(GradientNormalization.ClipL2PerLayer)
+        .build())
+      .layer(5, new OutputLayer.Builder(LossFunctions.LossFunction.MSE).activation("softmax").nIn(layer1width).nOut(outputNum).build())
+      .pretrain(false).backprop(true)
       .build()
 
     log.info(s"Architecture ${Args.architecture}")
