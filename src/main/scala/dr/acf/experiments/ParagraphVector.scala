@@ -430,7 +430,7 @@ object ParagraphVector extends SparkOps {
 
     log.info(s"Network configuration ${active_conf.toString}")
 
-    val tm = new ParameterAveragingTrainingMaster.Builder(batchSize)
+    val tm = new ParameterAveragingTrainingMaster.Builder(1)
       .averagingFrequency(averagingFrequency)
       .workerPrefetchNumBatches(2)
       .batchSizePerWorker(batchSize)
