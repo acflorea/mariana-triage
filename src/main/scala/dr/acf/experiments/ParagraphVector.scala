@@ -274,6 +274,14 @@ object ParagraphVector extends SparkOps {
 
     val possibleLabels: Int = classes.size()
 
+    val depth = Args.architecture match {
+      case "cnn" => 5
+      case "rnn" => 1
+      case "deep" => 1
+    }
+
+    log.info("Apply Paragraph2Vec ....")
+
     val broadcastPV = false
     val data =
       if (broadcastPV) {
@@ -286,13 +294,24 @@ object ParagraphVector extends SparkOps {
           }
         }.collect().toList
       } else {
-        transformedData.collect().toList.collect { case row if row.head.toString.nonEmpty =>
-          seqAsJavaList(paragraphVectors.inferVector(row.head.toString).
-            data().asDouble().map(new DoubleWritable(_)) ++ row.drop(1))
+        transformedData.collect().zipWithIndex.toList.collect { case rowWithIndex if rowWithIndex._1.head.toString.nonEmpty =>
+          val row = rowWithIndex._1
+          val index = rowWithIndex._2
+          if (index % 100 == 0) log.debug(s"Processed $index rows.")
+
+          val desc = row.head.toString
+          val words = desc.split("\\W+")
+          val length = words.length / depth
+
+          val groups = (0 until depth) map (i => words.slice(i * length, Math.min(words.length, (i + 1) * length)))
+
+          val vectors = (groups map (slice => paragraphVectors.inferVector(slice.mkString(" ")).
+            data().asDouble().map(new DoubleWritable(_)) ++ row.drop(1).dropRight(1)))
+          seqAsJavaList(vectors.reduce(_ ++ _) ++ Seq(row.last))
         }
       }
 
-    val featureSpaceSize = paragraphVectors.getLayerSize + components.size() + products.size() + severityValues.size()
+    val featureSpaceSize = depth * (paragraphVectors.getLayerSize + components.size() + products.size() + severityValues.size())
 
     val batchSize = 100
     val averagingFrequency = 5
