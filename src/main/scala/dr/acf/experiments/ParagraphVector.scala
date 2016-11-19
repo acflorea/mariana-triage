@@ -359,11 +359,11 @@ object ParagraphVector extends SparkOps {
         // nIn is the number of channels, nOut is the number of filters to be applied
         .nIn(1).stride(1, 1).nOut(20)
         .activation("identity").build())
-      .layer(1, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.AVG).name("pooling_1")
+      .layer(1, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX).name("pooling_1")
         .kernelSize(1, 1).stride(1, 1).build())
       .layer(2, new ConvolutionLayer.Builder(1, 1).name("conv2")
         .stride(1, 1).nOut(50).activation("identity").build())
-      .layer(3, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.AVG).name("pooling_2")
+      .layer(3, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX).name("pooling_2")
         .kernelSize(1, 1).stride(1, 1).build())
       .layer(4, new DenseLayer.Builder().activation("relu").nOut(500).build())
       .layer(5, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).nOut(outputNum).activation("softmax").build())
