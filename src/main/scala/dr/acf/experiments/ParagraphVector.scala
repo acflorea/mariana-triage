@@ -224,12 +224,13 @@ object ParagraphVector extends SparkOps {
 
     val paragraphVectors = if (Args.computeEmbeddings) {
 
+      val listeners = new util.ArrayList[VectorsListener[VocabWord]]()
+      listeners.add(vectorListener)
+
       log.info("Build Embedded Vectors ....")
       // ParagraphVectors training configuration
       val _paragraphVectors = new ParagraphVectors.Builder()
-        .setVectorsListeners(new util.ArrayList[VectorsListener[VocabWord]] {
-          vectorListener
-        })
+        .setVectorsListeners(listeners)
         .layerSize(50)
         .learningRate(0.025).minLearningRate(0.001)
         .batchSize(2500).epochs(Args.epochsForEmbeddings)
