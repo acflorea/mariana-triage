@@ -274,8 +274,8 @@ object ParagraphVector extends SparkOps {
 
     val possibleLabels: Int = classes.size()
 
-    val depth = Args.architecture match {
-      case "cnn" => 5
+    val height = Args.architecture match {
+      case "cnn" => 10
       case "rnn" => 1
       case "deep" => 1
     }
@@ -301,9 +301,16 @@ object ParagraphVector extends SparkOps {
 
           val desc = row.head.toString
           val words = desc.split("\\W+")
-          val length = words.length / depth
 
-          val groups = (0 until depth) map (i => words.slice(i * length, Math.min(words.length, (i + 1) * length)))
+          val groups = if (words.length < 3 * height) {
+            // if less than 3 words in a group we pad the input
+            val padded = (0 to (3 * height / words.length)).foldLeft[Array[String]](words) { (acc: Array[String], index: Int) => acc ++ words }
+            val length = padded.length / height
+            (0 until height) map (i => padded.slice(i * length, Math.min(padded.length, (i + 1) * length)))
+          } else {
+            val length = words.length / height
+            (0 until height) map (i => words.slice(i * length, Math.min(words.length, (i + 1) * length)))
+          }
 
           val vectors = (groups map (slice => paragraphVectors.inferVector(slice.mkString(" ")).
             data().asDouble().map(new DoubleWritable(_)) ++ row.drop(1).dropRight(1)))
@@ -311,7 +318,7 @@ object ParagraphVector extends SparkOps {
         }
       }
 
-    val featureSpaceSize = depth * (paragraphVectors.getLayerSize + components.size() + products.size() + severityValues.size())
+    val featureSpaceSize = height * (paragraphVectors.getLayerSize + components.size() + products.size() + severityValues.size())
 
     val batchSize = 100
     val averagingFrequency = 5
@@ -348,20 +355,20 @@ object ParagraphVector extends SparkOps {
       .weightInit(WeightInit.XAVIER).optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
       .updater(Updater.NESTEROVS).momentum(0.9)
       .list
-      .layer(0, new ConvolutionLayer.Builder(1, 5).name("conv1")
+      .layer(0, new ConvolutionLayer.Builder(2, featureSpaceSize).name("conv1")
         // nIn is the number of channels, nOut is the number of filters to be applied
         .nIn(1).stride(1, 1).nOut(20)
         .activation("identity").build())
-      .layer(1, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX).name("pooling_1")
-        .kernelSize(1, 2).stride(1, 1).build())
-      .layer(2, new ConvolutionLayer.Builder(1, 5).name("conv2")
+      .layer(1, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.AVG).name("pooling_1")
+        .kernelSize(1, featureSpaceSize).stride(1, 1).build())
+      .layer(2, new ConvolutionLayer.Builder(1, featureSpaceSize).name("conv2")
         .stride(1, 1).nOut(50).activation("identity").build())
-      .layer(3, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX).name("pooling_2")
-        .kernelSize(1, 2).stride(1, 1).build())
+      .layer(3, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.AVG).name("pooling_2")
+        .kernelSize(1, featureSpaceSize).stride(1, 1).build())
       .layer(4, new DenseLayer.Builder().activation("relu").nOut(500).build())
       .layer(5, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).nOut(outputNum).activation("softmax").build())
-      // height, width, depth
-      .setInputType(InputType.convolutionalFlat(1, featureSpaceSize, 1))
+      // height, width, height
+      .setInputType(InputType.convolutionalFlat(height, featureSpaceSize / height, 1))
       .backprop(true).pretrain(false).build()
 
     //Set up network configuration
