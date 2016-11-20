@@ -28,6 +28,8 @@ import org.deeplearning4j.nn.conf.inputs.InputType
 import org.deeplearning4j.nn.conf.layers.RBM.{HiddenUnit, VisibleUnit}
 import org.deeplearning4j.nn.conf.layers._
 import org.deeplearning4j.nn.weights.WeightInit
+import org.deeplearning4j.optimize.api.IterationListener
+import org.deeplearning4j.optimize.listeners.ScoreIterationListener
 import org.deeplearning4j.spark.impl.multilayer.SparkDl4jMultiLayer
 import org.deeplearning4j.spark.impl.paramavg.ParameterAveragingTrainingMaster
 import org.deeplearning4j.text.sentenceiterator.CollectionSentenceIterator
@@ -356,7 +358,7 @@ object ParagraphVector extends SparkOps {
       .weightInit(WeightInit.XAVIER).optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
       .updater(Updater.NESTEROVS).momentum(0.9)
       .list
-      .layer(0, new ConvolutionLayer.Builder(2, 1).name("conv1")
+      .layer(0, new ConvolutionLayer.Builder(height, 1).name("conv1")
         // nIn is the number of channels, nOut is the number of filters to be applied
         .nIn(1).stride(1, 1).nOut(20)
         .activation("identity").build())
@@ -393,60 +395,18 @@ object ParagraphVector extends SparkOps {
         .build())
       .pretrain(false).backprop(true).build
 
-
-    val deep_conf = new NeuralNetConfiguration.Builder()
+    val deep_conf: MultiLayerConfiguration = new NeuralNetConfiguration.Builder()
       .seed(seed)
       .iterations(iterations)
-      .optimizationAlgo(OptimizationAlgorithm.LBFGS)
-      .list()
-      .layer(0, new RBM.Builder().l2(1e-1).l1(1e-3)
-        .nIn(featureSpaceSize) // Input nodes
-        .nOut(layer1width) // Output nodes
-        .activation("relu") // Activation function type
-        .weightInit(WeightInit.RELU) // Weight initialization
-        .lossFunction(LossFunctions.LossFunction.RECONSTRUCTION_CROSSENTROPY).k(3)
-        .hiddenUnit(HiddenUnit.RECTIFIED).visibleUnit(VisibleUnit.GAUSSIAN)
-        .updater(Updater.ADAGRAD).gradientNormalization(GradientNormalization.ClipL2PerLayer)
-        .build())
-      .layer(1, new RBM.Builder().l2(1e-1).l1(1e-3)
-        .nIn(layer1width) // Input nodes
-        .nOut(layer1width) // Output nodes
-        .activation("relu") // Activation function type
-        .weightInit(WeightInit.RELU) // Weight initialization
-        .lossFunction(LossFunctions.LossFunction.RECONSTRUCTION_CROSSENTROPY).k(3)
-        .hiddenUnit(HiddenUnit.RECTIFIED).visibleUnit(VisibleUnit.GAUSSIAN)
-        .updater(Updater.ADAGRAD).gradientNormalization(GradientNormalization.ClipL2PerLayer)
-        .build())
-      .layer(2, new RBM.Builder().l2(1e-1).l1(1e-3)
-        .nIn(layer1width) // Input nodes
-        .nOut(layer1width) // Output nodes
-        .activation("relu") // Activation function type
-        .weightInit(WeightInit.RELU) // Weight initialization
-        .lossFunction(LossFunctions.LossFunction.RECONSTRUCTION_CROSSENTROPY).k(3)
-        .hiddenUnit(HiddenUnit.RECTIFIED).visibleUnit(VisibleUnit.GAUSSIAN)
-        .updater(Updater.ADAGRAD).gradientNormalization(GradientNormalization.ClipL2PerLayer)
-        .build())
-      .layer(3, new RBM.Builder().l2(1e-1).l1(1e-3)
-        .nIn(layer1width) // Input nodes
-        .nOut(layer1width) // Output nodes
-        .activation("relu") // Activation function type
-        .weightInit(WeightInit.RELU) // Weight initialization
-        .lossFunction(LossFunctions.LossFunction.RECONSTRUCTION_CROSSENTROPY).k(3)
-        .hiddenUnit(HiddenUnit.RECTIFIED).visibleUnit(VisibleUnit.GAUSSIAN)
-        .updater(Updater.ADAGRAD).gradientNormalization(GradientNormalization.ClipL2PerLayer)
-        .build())
-      .layer(4, new RBM.Builder().l2(1e-1).l1(1e-3)
-        .nIn(layer1width) // Input nodes
-        .nOut(layer1width) // Output nodes
-        .activation("relu") // Activation function type
-        .weightInit(WeightInit.RELU) // Weight initialization
-        .lossFunction(LossFunctions.LossFunction.RECONSTRUCTION_CROSSENTROPY).k(3)
-        .hiddenUnit(HiddenUnit.RECTIFIED).visibleUnit(VisibleUnit.GAUSSIAN)
-        .updater(Updater.ADAGRAD).gradientNormalization(GradientNormalization.ClipL2PerLayer)
-        .build())
-      .layer(5, new OutputLayer.Builder(LossFunctions.LossFunction.MSE).activation("softmax").nIn(layer1width).nOut(outputNum).build())
-      .pretrain(false).backprop(true)
-      .build()
+      .optimizationAlgo(OptimizationAlgorithm.LINE_GRADIENT_DESCENT)
+      .list
+      .layer(0, new RBM.Builder().nIn(featureSpaceSize).nOut(500).lossFunction(LossFunctions.LossFunction.RMSE_XENT).build)
+      .layer(1, new RBM.Builder().nIn(500).nOut(500).lossFunction(LossFunctions.LossFunction.RMSE_XENT).build)
+      .layer(2, new RBM.Builder().nIn(500).nOut(500).lossFunction(LossFunctions.LossFunction.RMSE_XENT).build)
+      .layer(3, new RBM.Builder().nIn(500).nOut(500).lossFunction(LossFunctions.LossFunction.RMSE_XENT).build)
+      .layer(4, new RBM.Builder().nIn(500).nOut(500).lossFunction(LossFunctions.LossFunction.RMSE_XENT).build)
+      .layer(5, new OutputLayer.Builder(LossFunctions.LossFunction.MSE).activation("sigmoid").nIn(500).nOut(outputNum).build)
+      .pretrain(true).backprop(true).build
 
     log.info(s"Architecture ${Args.architecture}")
     val active_conf = Args.architecture match {
@@ -465,6 +425,10 @@ object ParagraphVector extends SparkOps {
 
     //Create the Spark network
     val sparkNet = new SparkDl4jMultiLayer(sc, active_conf, tm)
+
+    val networkListeners = new util.ArrayList[IterationListener]()
+    networkListeners.add(new ScoreIterationListener(iterations/5))
+    sparkNet.setListeners(networkListeners)
 
     //Execute training:
     val numEpochs = 150
