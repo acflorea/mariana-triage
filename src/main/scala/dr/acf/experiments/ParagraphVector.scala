@@ -277,7 +277,7 @@ object ParagraphVector extends SparkOps {
 
     val possibleLabels: Int = classes.size()
 
-    val height = Args.architecture match {
+    val depth = Args.architecture match {
       case "cnn" => 10
       case "rnn" => 1
       case "deep" => 1
@@ -305,14 +305,14 @@ object ParagraphVector extends SparkOps {
           val desc = row.head.toString
           val words = desc.split("\\W+")
 
-          val groups = if (words.length < 3 * height) {
+          val groups = if (words.length < 3 * depth) {
             // if less than 3 words in a group we pad the input
-            val padded = (0 to (3 * height / words.length)).foldLeft[Array[String]](words) { (acc: Array[String], index: Int) => acc ++ words }
-            val length = padded.length / height
-            (0 until height) map (i => padded.slice(i * length, Math.min(padded.length, (i + 1) * length)))
+            val padded = (0 to (3 * depth / words.length)).foldLeft[Array[String]](words) { (acc: Array[String], index: Int) => acc ++ words }
+            val length = padded.length / depth
+            (0 until depth) map (i => padded.slice(i * length, Math.min(padded.length, (i + 1) * length)))
           } else {
-            val length = words.length / height
-            (0 until height) map (i => words.slice(i * length, Math.min(words.length, (i + 1) * length)))
+            val length = words.length / depth
+            (0 until depth) map (i => words.slice(i * length, Math.min(words.length, (i + 1) * length)))
           }
 
           val vectors = groups map (slice => paragraphVectors.inferVector(slice.mkString(" ")).
@@ -321,7 +321,7 @@ object ParagraphVector extends SparkOps {
         }
       }
 
-    val featureSpaceSize = height * (paragraphVectors.getLayerSize + components.size() + products.size() + severityValues.size())
+    val featureSpaceSize = depth * (paragraphVectors.getLayerSize + components.size() + products.size() + severityValues.size())
 
     val batchSize = 100
     val averagingFrequency = 5
@@ -358,9 +358,9 @@ object ParagraphVector extends SparkOps {
       .weightInit(WeightInit.XAVIER).optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
       .updater(Updater.NESTEROVS).momentum(0.9)
       .list
-      .layer(0, new ConvolutionLayer.Builder(height, 1).name("conv1")
+      .layer(0, new ConvolutionLayer.Builder(1, 1).name("conv1")
         // nIn is the number of channels, nOut is the number of filters to be applied
-        .nIn(1).stride(1, 1).nOut(20)
+        .nIn(depth).stride(1, 1).nOut(20)
         .activation("identity").build())
       .layer(1, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX).name("pooling_1")
         .kernelSize(1, 1).stride(1, 1).build())
@@ -370,8 +370,8 @@ object ParagraphVector extends SparkOps {
         .kernelSize(1, 1).stride(1, 1).build())
       .layer(4, new DenseLayer.Builder().activation("relu").nOut(500).build())
       .layer(5, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).nOut(outputNum).activation("softmax").build())
-      // height, width, height
-      .setInputType(InputType.convolutionalFlat(height, featureSpaceSize / height, 1))
+      // depth, width, depth
+      .setInputType(InputType.convolutionalFlat(1, featureSpaceSize / depth, depth))
       .backprop(true).pretrain(false).build()
 
     //Set up network configuration
@@ -427,7 +427,7 @@ object ParagraphVector extends SparkOps {
     val sparkNet = new SparkDl4jMultiLayer(sc, active_conf, tm)
 
     val networkListeners = new util.ArrayList[IterationListener]()
-    networkListeners.add(new ScoreIterationListener(iterations/5))
+    networkListeners.add(new ScoreIterationListener(iterations / 5))
     sparkNet.setListeners(networkListeners)
 
     //Execute training:
