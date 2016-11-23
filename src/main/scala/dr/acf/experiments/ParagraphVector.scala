@@ -209,7 +209,7 @@ object ParagraphVector extends SparkOps {
     val vectorListener = new VectorsListener[VocabWord] {
       override def processEvent(event: ListenerEvent, sequenceVectors: SequenceVectors[VocabWord], argument: Long) = {
         event match {
-          case ListenerEvent.EPOCH if argument % 3 == 0 =>
+          case ListenerEvent.EPOCH if argument % 1 == 0 =>
             log.info("Save vectors....")
             lazy val _modelName = if (argument < 10)
               s"${Args.model}_0$argument.model"
@@ -277,8 +277,8 @@ object ParagraphVector extends SparkOps {
 
     val possibleLabels: Int = classes.size()
 
-    val depth = Args.architecture match {
-      case "cnn" => 10
+    val height = Args.architecture match {
+      case "cnn" => 25
       case "rnn" => 1
       case "deep" => 1
     }
@@ -305,14 +305,16 @@ object ParagraphVector extends SparkOps {
           val desc = row.head.toString
           val words = desc.split("\\W+")
 
-          val groups = if (words.length < 3 * depth) {
-            // if less than 3 words in a group we pad the input
-            val padded = (0 to (3 * depth / words.length)).foldLeft[Array[String]](words) { (acc: Array[String], index: Int) => acc ++ words }
-            val length = padded.length / depth
-            (0 until depth) map (i => padded.slice(i * length, Math.min(padded.length, (i + 1) * length)))
+          val wordsPerGroup = 5
+
+          val groups = if (words.length < wordsPerGroup * height) {
+            // if less than wordsPerGroup words in a group we pad the input
+            val padded = (0 to (wordsPerGroup * height / words.length)).foldLeft[Array[String]](words) { (acc: Array[String], index: Int) => acc ++ words }
+            val length = padded.length / height
+            (0 until height) map (i => padded.slice(i * length, Math.min(padded.length, (i + 1) * length)))
           } else {
-            val length = words.length / depth
-            (0 until depth) map (i => words.slice(i * length, Math.min(words.length, (i + 1) * length)))
+            val length = words.length / height
+            (0 until height) map (i => words.slice(i * length, Math.min(words.length, (i + 1) * length)))
           }
 
           val vectors = groups map (slice => paragraphVectors.inferVector(slice.mkString(" ")).
@@ -321,7 +323,7 @@ object ParagraphVector extends SparkOps {
         }
       }
 
-    val featureSpaceSize = depth * (paragraphVectors.getLayerSize + components.size() + products.size() + severityValues.size())
+    val featureSpaceSize = height * (paragraphVectors.getLayerSize + components.size() + products.size() + severityValues.size())
 
     val batchSize = 100
     val averagingFrequency = 5
@@ -358,20 +360,41 @@ object ParagraphVector extends SparkOps {
       .weightInit(WeightInit.XAVIER).optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
       .updater(Updater.NESTEROVS).momentum(0.9)
       .list
-      .layer(0, new ConvolutionLayer.Builder(1, 1).name("conv1")
+      .layer(0, new ConvolutionLayer.Builder(height, 1).name("conv1")
         // nIn is the number of channels, nOut is the number of filters to be applied
-        .nIn(depth).stride(1, 1).nOut(20)
+        .nIn(1).stride(1, 1).nOut(height)
         .activation("identity").build())
-      .layer(1, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX).name("pooling_1")
+      .layer(1, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.AVG).name("pooling_1")
+        .kernelSize(1, 1).stride(1, 1).build())
+ //     .layer(2, new ConvolutionLayer.Builder(1, 1).name("conv2")
+ //       .stride(1, 1).nOut(height).activation("identity").build())
+ //     .layer(3, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.AVG).name("pooling_2")
+ //       .kernelSize(1, 1).stride(1, 1).build())
+      .layer(2, new DenseLayer.Builder().activation("relu").nOut(500).build())
+      .layer(3, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).nOut(outputNum).activation("softmax").build())
+      // height, width, height
+      .setInputType(InputType.convolutionalFlat(height, featureSpaceSize / height, 1))
+      .backprop(true).pretrain(false).build()
+
+    val cnn_conf_2: MultiLayerConfiguration = new NeuralNetConfiguration.Builder()
+      .seed(12345).iterations(iterations).regularization(true).l2(0.0005).learningRate(.01)
+      .weightInit(WeightInit.XAVIER).optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
+      .updater(Updater.NESTEROVS).momentum(0.9)
+      .list
+      .layer(0, new ConvolutionLayer.Builder(height, 1).name("conv1")
+        // nIn is the number of channels, nOut is the number of filters to be applied
+        .nIn(1).stride(1, 1).nOut(20)
+        .activation("identity").build())
+      .layer(1, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.AVG).name("pooling_1")
         .kernelSize(1, 1).stride(1, 1).build())
       .layer(2, new ConvolutionLayer.Builder(1, 1).name("conv2")
         .stride(1, 1).nOut(50).activation("identity").build())
-      .layer(3, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX).name("pooling_2")
+      .layer(3, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.AVG).name("pooling_2")
         .kernelSize(1, 1).stride(1, 1).build())
       .layer(4, new DenseLayer.Builder().activation("relu").nOut(500).build())
       .layer(5, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).nOut(outputNum).activation("softmax").build())
-      // depth, width, depth
-      .setInputType(InputType.convolutionalFlat(1, featureSpaceSize / depth, depth))
+      // height, width, height
+      .setInputType(InputType.convolutionalFlat(height, featureSpaceSize / height, 1))
       .backprop(true).pretrain(false).build()
 
     //Set up network configuration
