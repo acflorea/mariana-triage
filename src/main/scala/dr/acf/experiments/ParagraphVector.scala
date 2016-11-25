@@ -3,6 +3,7 @@ package dr.acf.experiments
 import java.io.File
 import java.util
 import java.util.TimeZone
+import java.util.logging.Logger
 
 import com.beust.jcommander.{JCommander, Parameter}
 import dr.acf.utils.{SmartEvaluation, SparkOps, WordVectorSmartSerializer}
@@ -25,8 +26,8 @@ import org.deeplearning4j.models.word2vec.VocabWord
 import org.deeplearning4j.nn.api.OptimizationAlgorithm
 import org.deeplearning4j.nn.conf._
 import org.deeplearning4j.nn.conf.inputs.InputType
-import org.deeplearning4j.nn.conf.layers.RBM.{HiddenUnit, VisibleUnit}
 import org.deeplearning4j.nn.conf.layers._
+import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.deeplearning4j.nn.weights.WeightInit
 import org.deeplearning4j.optimize.api.IterationListener
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener
@@ -35,6 +36,7 @@ import org.deeplearning4j.spark.impl.paramavg.ParameterAveragingTrainingMaster
 import org.deeplearning4j.text.sentenceiterator.CollectionSentenceIterator
 import org.deeplearning4j.text.tokenization.tokenizer.preprocessor.CommonPreprocessor
 import org.deeplearning4j.text.tokenization.tokenizerfactory.DefaultTokenizerFactory
+import org.deeplearning4j.util.ModelSerializer
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator
 import org.nd4j.linalg.lossfunctions.LossFunctions
 import org.slf4j.LoggerFactory
@@ -83,15 +85,15 @@ object ParagraphVector extends SparkOps {
       description = "Type of the architecture to use")
     val architecture = "rnn" // rnn, cnn, deep
 
+    @Parameter(
+      names = Array("-s", "--source"),
+      description = "Source model to start from")
+    val sourceModel = "" // start with an existing model
+
   }
 
-  lazy val modelName = if (Args.epochsForEmbeddings < 10)
-    s"${Args.model}_0${Args.epochsForEmbeddings}.model"
-  else
-    s"${Args.model}_${Args.epochsForEmbeddings}.model"
-
-  val severityValues = util.Arrays.asList("normal", "enhancement", "major", "trivial", "critical", "minor", "blocker")
-  val statusValues = util.Arrays.asList("CLOSED", "RESOLVED", "VERIFIED", "trivial", "critical", "minor")
+  val severityValues : util.List[String] = util.Arrays.asList("normal", "enhancement", "major", "trivial", "critical", "minor", "blocker")
+  val statusValues : util.List[String] = util.Arrays.asList("CLOSED", "RESOLVED", "VERIFIED", "trivial", "critical", "minor")
 
   // Let's define the schema of the data that we want to import
   // The order in which columns are defined here should match
@@ -119,12 +121,17 @@ object ParagraphVector extends SparkOps {
     .addColumnInteger("class")
     .build()
 
-  val log = LoggerFactory.getLogger(Classifier.getClass)
+  val log : Logger = LoggerFactory.getLogger(Classifier.getClass)
 
   def main(args: Array[String]): Unit = {
 
     // Initialize jCommander
     new JCommander(Args, args.toArray: _*)
+
+    lazy val modelName = if (Args.epochsForEmbeddings < 10)
+      s"${Args.model}_0${Args.epochsForEmbeddings}.model"
+    else
+      s"${Args.model}_${Args.epochsForEmbeddings}.model"
 
     log.debug(s"Resource folder is ${Args.resourceFolder}")
     log.debug(s"Input file is ${Args.inputFileName}")
@@ -158,7 +165,6 @@ object ParagraphVector extends SparkOps {
 
     log.info("\n\n\nSchema after transforming data:")
     log.info(s"$outputSchema")
-
 
     //=====================================================================
     //            Step 2.b: Transform
@@ -196,6 +202,26 @@ object ParagraphVector extends SparkOps {
     }
 
     //=====================================================================
+    //            Step 3.a: More transformations
+    //=====================================================================
+    val numericToCategoricalTransform: TransformProcess = new TransformProcess.Builder(filteredDataSchema)
+      .integerToCategorical("component_id", components)
+      .integerToCategorical("product_id", products)
+      .categoricalToOneHot("bug_severity")
+      .categoricalToOneHot("component_id")
+      .categoricalToOneHot("product_id")
+      .integerToCategorical("class", classes)
+      .build()
+
+    //=====================================================================
+    //            Step 3.b: Transform
+    //=====================================================================
+    //Now, let's execute the transforms we defined earlier:
+    val transformedData: RDD[util.List[Writable]] = SparkTransformExecutor.execute(filteredData, numericToCategoricalTransform)
+
+    val possibleLabels: Int = classes.size()
+
+    //=====================================================================
     //            PARAGRAPH VECTOR !!!
     //=====================================================================
 
@@ -205,26 +231,26 @@ object ParagraphVector extends SparkOps {
     val tokenizerFactory = new DefaultTokenizerFactory
     tokenizerFactory.setTokenPreProcessor(new CommonPreprocessor)
 
-    // Lister to store model at each phase
-    val vectorListener = new VectorsListener[VocabWord] {
-      override def processEvent(event: ListenerEvent, sequenceVectors: SequenceVectors[VocabWord], argument: Long) = {
-        event match {
-          case ListenerEvent.EPOCH if argument % 1 == 0 =>
-            log.info("Save vectors....")
-            lazy val _modelName = if (argument < 10)
-              s"${Args.model}_0$argument.model"
-            else
-              s"${Args.model}_$argument.model"
-            WordVectorSmartSerializer
-              .writeParagraphVectors(sequenceVectors.asInstanceOf[ParagraphVectors], Args.resourceFolder + modelName)
-          case _ =>
-        }
-      }
-
-      override def validateEvent(event: ListenerEvent, argument: Long): Boolean = true
-    }
-
     val paragraphVectors = if (Args.computeEmbeddings) {
+
+      // Lister to store model at each phase
+      val vectorListener = new VectorsListener[VocabWord] {
+        override def processEvent(event: ListenerEvent, sequenceVectors: SequenceVectors[VocabWord], argument: Long) = {
+          event match {
+            case ListenerEvent.EPOCH if argument % 1 == 0 =>
+              log.info("Save vectors....")
+              lazy val _modelName = if (argument < 10)
+                s"${Args.model}_0$argument.model"
+              else
+                s"${Args.model}_$argument.model"
+              WordVectorSmartSerializer
+                .writeParagraphVectors(sequenceVectors.asInstanceOf[ParagraphVectors], Args.resourceFolder + modelName)
+            case _ =>
+          }
+        }
+
+        override def validateEvent(event: ListenerEvent, argument: Long): Boolean = true
+      }
 
       val listeners = new util.ArrayList[VectorsListener[VocabWord]]()
       listeners.add(vectorListener)
@@ -256,26 +282,6 @@ object ParagraphVector extends SparkOps {
     }
 
     log.info("Embedded Vectors OK ....")
-
-    //=====================================================================
-    //            Step 3.a: More transformations
-    //=====================================================================
-    val numericToCategoricalTransform: TransformProcess = new TransformProcess.Builder(filteredDataSchema)
-      .integerToCategorical("component_id", components)
-      .integerToCategorical("product_id", products)
-      .categoricalToOneHot("bug_severity")
-      .categoricalToOneHot("component_id")
-      .categoricalToOneHot("product_id")
-      .integerToCategorical("class", classes)
-      .build()
-
-    //=====================================================================
-    //            Step 3.b: Transform
-    //=====================================================================
-    //Now, let's execute the transforms we defined earlier:
-    val transformedData: RDD[util.List[Writable]] = SparkTransformExecutor.execute(filteredData, numericToCategoricalTransform)
-
-    val possibleLabels: Int = classes.size()
 
     val height = Args.architecture match {
       case "cnn" => 25
@@ -323,6 +329,8 @@ object ParagraphVector extends SparkOps {
         }
       }
 
+    val seed = 12345
+
     val featureSpaceSize = height * (paragraphVectors.getLayerSize + components.size() + products.size() + severityValues.size())
 
     val batchSize = 100
@@ -337,6 +345,118 @@ object ParagraphVector extends SparkOps {
 
     val activation_end = "softmax"
 
+    val tm = new ParameterAveragingTrainingMaster.Builder(1)
+      .averagingFrequency(averagingFrequency)
+      .workerPrefetchNumBatches(2)
+      .batchSizePerWorker(batchSize)
+      .build()
+
+    val sparkNet = if (Args.sourceModel.trim == "") {
+
+      log.info("Build model....")
+      log.info(s"Number of iterations $iterations")
+      log.info(s"Number of features $featureSpaceSize")
+
+      val cnn_conf: MultiLayerConfiguration = new NeuralNetConfiguration.Builder()
+        .seed(12345).iterations(iterations).regularization(true).l2(0.0005).learningRate(.01)
+        .weightInit(WeightInit.XAVIER).optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
+        .updater(Updater.NESTEROVS).momentum(0.9)
+        .list
+        .layer(0, new ConvolutionLayer.Builder(height, 1).name("conv1")
+          // nIn is the number of channels, nOut is the number of filters to be applied
+          .nIn(1).stride(1, 1).nOut(20)
+          .dropOut(0.5)
+          .activation("identity").build())
+        .layer(1, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.AVG).name("pooling_1")
+          .kernelSize(1, 1).stride(1, 1).build())
+        //     .layer(2, new ConvolutionLayer.Builder(1, 1).name("conv2")
+        //       .stride(1, 1).nOut(height).activation("identity").build())
+        //     .layer(3, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.AVG).name("pooling_2")
+        //       .kernelSize(1, 1).stride(1, 1).build())
+        .layer(2, new DenseLayer.Builder().activation("relu").nOut(500).build())
+        .layer(3, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).nOut(outputNum).activation("softmax").build())
+        // height, width, height
+        .setInputType(InputType.convolutionalFlat(height, featureSpaceSize / height, 1))
+        .backprop(true).pretrain(false).build()
+
+      val cnn_conf_2: MultiLayerConfiguration = new NeuralNetConfiguration.Builder()
+        .seed(12345).iterations(iterations).regularization(true).l2(0.0005).learningRate(.01)
+        .weightInit(WeightInit.XAVIER).optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
+        .updater(Updater.NESTEROVS).momentum(0.9)
+        .list
+        .layer(0, new ConvolutionLayer.Builder(height, 1).name("conv1")
+          // nIn is the number of channels, nOut is the number of filters to be applied
+          .nIn(1).stride(1, 1).nOut(20)
+          .activation("identity").build())
+        .layer(1, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.AVG).name("pooling_1")
+          .kernelSize(1, 1).stride(1, 1).build())
+        .layer(2, new ConvolutionLayer.Builder(1, 1).name("conv2")
+          .dropOut(0.5)
+          .stride(1, 1).nOut(50).activation("identity").build())
+        .layer(3, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.AVG).name("pooling_2")
+          .kernelSize(1, 1).stride(1, 1).build())
+        .layer(4, new DenseLayer.Builder().activation("relu").nOut(500).build())
+        .layer(5, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).nOut(outputNum).activation("softmax").build())
+        // height, width, height
+        .setInputType(InputType.convolutionalFlat(height, featureSpaceSize / height, 1))
+        .backprop(true).pretrain(false).build()
+
+      //Set up network configuration
+      val rnn_conf: MultiLayerConfiguration = new NeuralNetConfiguration.Builder()
+        .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
+        .iterations(iterations)
+        .updater(Updater.RMSPROP)
+        .regularization(true).l2(1e-5)
+        .weightInit(WeightInit.XAVIER)
+        .gradientNormalization(GradientNormalization.ClipElementWiseAbsoluteValue).gradientNormalizationThreshold(1.0)
+        .learningRate(learningRate)
+        .list
+        .layer(0, new GravesLSTM.Builder().name("GravesLSTM")
+          .nIn(featureSpaceSize).nOut(layer1width)
+          .activation(activation)
+          .dropOut(0.5)
+          .build())
+        .layer(1, new RnnOutputLayer.Builder().name("RnnOutputLayer")
+          .activation(activation_end)
+          .nIn(layer1width).nOut(outputNum)
+          .build())
+        .pretrain(false).backprop(true).build
+
+      val deep_conf: MultiLayerConfiguration = new NeuralNetConfiguration.Builder()
+        .seed(seed)
+        .iterations(iterations)
+        .optimizationAlgo(OptimizationAlgorithm.LINE_GRADIENT_DESCENT)
+        .list
+        .layer(0, new RBM.Builder().nIn(featureSpaceSize).nOut(10).lossFunction(LossFunctions.LossFunction.RMSE_XENT).build)
+        .layer(1, new RBM.Builder().nIn(10).nOut(10).lossFunction(LossFunctions.LossFunction.RMSE_XENT).build)
+        .layer(2, new RBM.Builder().nIn(10).nOut(10).lossFunction(LossFunctions.LossFunction.RMSE_XENT).build)
+        .layer(3, new RBM.Builder().nIn(10).nOut(10).lossFunction(LossFunctions.LossFunction.RMSE_XENT).build)
+        .layer(4, new RBM.Builder().nIn(10).nOut(10).lossFunction(LossFunctions.LossFunction.RMSE_XENT).build)
+        .layer(5, new OutputLayer.Builder(LossFunctions.LossFunction.MSE).activation("softmax").nIn(10).nOut(outputNum).build)
+        .pretrain(true).backprop(true).build
+
+      log.info(s"Architecture ${Args.architecture}")
+      val active_conf = Args.architecture match {
+        case "cnn" => cnn_conf
+        case "rnn" => rnn_conf
+        case "deep" => deep_conf
+      }
+
+      log.info(s"Network configuration ${active_conf.toString}")
+
+      //Create the Spark network
+      new SparkDl4jMultiLayer(sc, active_conf, tm)
+
+    } else {
+
+      //Load the model
+      val locationToSave = new File(s"${Args.sourceModel}")
+      val restored = ModelSerializer.restoreMultiLayerNetwork(locationToSave)
+      //Create the Spark network
+      new SparkDl4jMultiLayer(sc, restored, tm)
+
+    }
+
     val (_trainingData, _testData) = data.splitAt(9 * data.size / 10)
 
     // train data
@@ -349,105 +469,9 @@ object ParagraphVector extends SparkOps {
     val testIterator: DataSetIterator =
       new RecordReaderDataSetIterator(testRecordReader, _testData.length, featureSpaceSize, possibleLabels)
 
-    log.info("Build model....")
-    log.info(s"Number of iterations $iterations")
-    log.info(s"Number of features $featureSpaceSize")
-
-    val seed = 12345
-
-    val cnn_conf: MultiLayerConfiguration = new NeuralNetConfiguration.Builder()
-      .seed(12345).iterations(iterations).regularization(true).l2(0.0005).learningRate(.01)
-      .weightInit(WeightInit.XAVIER).optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
-      .updater(Updater.NESTEROVS).momentum(0.9)
-      .list
-      .layer(0, new ConvolutionLayer.Builder(height, 1).name("conv1")
-        // nIn is the number of channels, nOut is the number of filters to be applied
-        .nIn(1).stride(1, 1).nOut(height)
-        .activation("identity").build())
-      .layer(1, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.AVG).name("pooling_1")
-        .kernelSize(1, 1).stride(1, 1).build())
- //     .layer(2, new ConvolutionLayer.Builder(1, 1).name("conv2")
- //       .stride(1, 1).nOut(height).activation("identity").build())
- //     .layer(3, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.AVG).name("pooling_2")
- //       .kernelSize(1, 1).stride(1, 1).build())
-      .layer(2, new DenseLayer.Builder().activation("relu").nOut(500).build())
-      .layer(3, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).nOut(outputNum).activation("softmax").build())
-      // height, width, height
-      .setInputType(InputType.convolutionalFlat(height, featureSpaceSize / height, 1))
-      .backprop(true).pretrain(false).build()
-
-    val cnn_conf_2: MultiLayerConfiguration = new NeuralNetConfiguration.Builder()
-      .seed(12345).iterations(iterations).regularization(true).l2(0.0005).learningRate(.01)
-      .weightInit(WeightInit.XAVIER).optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
-      .updater(Updater.NESTEROVS).momentum(0.9)
-      .list
-      .layer(0, new ConvolutionLayer.Builder(height, 1).name("conv1")
-        // nIn is the number of channels, nOut is the number of filters to be applied
-        .nIn(1).stride(1, 1).nOut(20)
-        .activation("identity").build())
-      .layer(1, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.AVG).name("pooling_1")
-        .kernelSize(1, 1).stride(1, 1).build())
-      .layer(2, new ConvolutionLayer.Builder(1, 1).name("conv2")
-        .stride(1, 1).nOut(50).activation("identity").build())
-      .layer(3, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.AVG).name("pooling_2")
-        .kernelSize(1, 1).stride(1, 1).build())
-      .layer(4, new DenseLayer.Builder().activation("relu").nOut(500).build())
-      .layer(5, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).nOut(outputNum).activation("softmax").build())
-      // height, width, height
-      .setInputType(InputType.convolutionalFlat(height, featureSpaceSize / height, 1))
-      .backprop(true).pretrain(false).build()
-
-    //Set up network configuration
-    val rnn_conf: MultiLayerConfiguration = new NeuralNetConfiguration.Builder()
-      .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
-      .iterations(iterations)
-      .updater(Updater.RMSPROP)
-      .regularization(true).l2(1e-5)
-      .weightInit(WeightInit.XAVIER)
-      .gradientNormalization(GradientNormalization.ClipElementWiseAbsoluteValue).gradientNormalizationThreshold(1.0)
-      .learningRate(learningRate)
-      .list
-      .layer(0, new GravesLSTM.Builder().name("GravesLSTM")
-        .nIn(featureSpaceSize).nOut(layer1width)
-        .activation(activation)
-        .dropOut(0.5)
-        .build())
-      .layer(1, new RnnOutputLayer.Builder().name("RnnOutputLayer")
-        .activation(activation_end)
-        .nIn(layer1width).nOut(outputNum)
-        .build())
-      .pretrain(false).backprop(true).build
-
-    val deep_conf: MultiLayerConfiguration = new NeuralNetConfiguration.Builder()
-      .seed(seed)
-      .iterations(iterations)
-      .optimizationAlgo(OptimizationAlgorithm.LINE_GRADIENT_DESCENT)
-      .list
-      .layer(0, new RBM.Builder().nIn(featureSpaceSize).nOut(500).lossFunction(LossFunctions.LossFunction.RMSE_XENT).build)
-      .layer(1, new RBM.Builder().nIn(500).nOut(500).lossFunction(LossFunctions.LossFunction.RMSE_XENT).build)
-      .layer(2, new RBM.Builder().nIn(500).nOut(500).lossFunction(LossFunctions.LossFunction.RMSE_XENT).build)
-      .layer(3, new RBM.Builder().nIn(500).nOut(500).lossFunction(LossFunctions.LossFunction.RMSE_XENT).build)
-      .layer(4, new RBM.Builder().nIn(500).nOut(500).lossFunction(LossFunctions.LossFunction.RMSE_XENT).build)
-      .layer(5, new OutputLayer.Builder(LossFunctions.LossFunction.MSE).activation("sigmoid").nIn(500).nOut(outputNum).build)
-      .pretrain(true).backprop(true).build
-
-    log.info(s"Architecture ${Args.architecture}")
-    val active_conf = Args.architecture match {
-      case "cnn" => cnn_conf
-      case "rnn" => rnn_conf
-      case "deep" => deep_conf
-    }
-
-    log.info(s"Network configuration ${active_conf.toString}")
-
-    val tm = new ParameterAveragingTrainingMaster.Builder(1)
-      .averagingFrequency(averagingFrequency)
-      .workerPrefetchNumBatches(2)
-      .batchSizePerWorker(batchSize)
-      .build()
-
-    //Create the Spark network
-    val sparkNet = new SparkDl4jMultiLayer(sc, active_conf, tm)
+    //    def net = new MultiLayerNetwork(active_conf)
+    //    net.init()
+    //    val saveUpdater = true
 
     val networkListeners = new util.ArrayList[IterationListener]()
     networkListeners.add(new ScoreIterationListener(iterations / 5))
@@ -465,6 +489,9 @@ object ParagraphVector extends SparkOps {
     (1 to numEpochs) foreach { i =>
       sparkNet.fit(trainingData)
       log.info(s"Completed Epoch $i")
+
+      val locationToSave = new File(s"${Args.architecture}_${Args.inputFileName}_$i.zip")
+      //      ModelSerializer.writeModel(net, locationToSave, saveUpdater);
 
       val evaluationTrain: SmartEvaluation = new SmartEvaluation(sparkNet.evaluate(trainingData))
       log.info("***** Evaluation TRAIN DATA *****")
