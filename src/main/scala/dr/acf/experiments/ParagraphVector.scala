@@ -39,6 +39,7 @@ import org.deeplearning4j.text.tokenization.tokenizerfactory.DefaultTokenizerFac
 import org.deeplearning4j.util.ModelSerializer
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator
 import org.nd4j.linalg.lossfunctions.LossFunctions
+import org.slf4j
 import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConversions._
@@ -92,8 +93,8 @@ object ParagraphVector extends SparkOps {
 
   }
 
-  val severityValues : util.List[String] = util.Arrays.asList("normal", "enhancement", "major", "trivial", "critical", "minor", "blocker")
-  val statusValues : util.List[String] = util.Arrays.asList("CLOSED", "RESOLVED", "VERIFIED", "trivial", "critical", "minor")
+  val severityValues: util.List[String] = util.Arrays.asList("normal", "enhancement", "major", "trivial", "critical", "minor", "blocker")
+  val statusValues: util.List[String] = util.Arrays.asList("CLOSED", "RESOLVED", "VERIFIED", "trivial", "critical", "minor")
 
   // Let's define the schema of the data that we want to import
   // The order in which columns are defined here should match
@@ -121,7 +122,7 @@ object ParagraphVector extends SparkOps {
     .addColumnInteger("class")
     .build()
 
-  val log : Logger = LoggerFactory.getLogger(Classifier.getClass)
+  val log: slf4j.Logger = LoggerFactory.getLogger(Classifier.getClass)
 
   def main(args: Array[String]): Unit = {
 
@@ -351,7 +352,7 @@ object ParagraphVector extends SparkOps {
       .batchSizePerWorker(batchSize)
       .build()
 
-    val sparkNet = if (Args.sourceModel.trim == "") {
+    val net = if (Args.sourceModel.trim == "") {
 
       log.info("Build model....")
       log.info(s"Number of iterations $iterations")
@@ -444,16 +445,19 @@ object ParagraphVector extends SparkOps {
 
       log.info(s"Network configuration ${active_conf.toString}")
 
-      //Create the Spark network
-      new SparkDl4jMultiLayer(sc, active_conf, tm)
+      def _net = new MultiLayerNetwork(active_conf)
+      _net.init()
+
+      _net
 
     } else {
 
       //Load the model
       val locationToSave = new File(s"${Args.sourceModel}")
       val restored = ModelSerializer.restoreMultiLayerNetwork(locationToSave)
-      //Create the Spark network
-      new SparkDl4jMultiLayer(sc, restored, tm)
+      restored.init()
+
+      restored
 
     }
 
@@ -469,12 +473,11 @@ object ParagraphVector extends SparkOps {
     val testIterator: DataSetIterator =
       new RecordReaderDataSetIterator(testRecordReader, _testData.length, featureSpaceSize, possibleLabels)
 
-    //    def net = new MultiLayerNetwork(active_conf)
-    //    net.init()
-    //    val saveUpdater = true
+    val saveUpdater = true
 
     val networkListeners = new util.ArrayList[IterationListener]()
     networkListeners.add(new ScoreIterationListener(iterations / 5))
+    val sparkNet = new SparkDl4jMultiLayer(sc, net, tm)
     sparkNet.setListeners(networkListeners)
 
     //Execute training:
@@ -486,12 +489,13 @@ object ParagraphVector extends SparkOps {
 
     log.info(s"Start training!!!")
 
+
     (1 to numEpochs) foreach { i =>
       sparkNet.fit(trainingData)
       log.info(s"Completed Epoch $i")
 
       val locationToSave = new File(s"${Args.architecture}_${Args.inputFileName}_$i.zip")
-      //      ModelSerializer.writeModel(net, locationToSave, saveUpdater);
+      ModelSerializer.writeModel(net, locationToSave, saveUpdater);
 
       val evaluationTrain: SmartEvaluation = new SmartEvaluation(sparkNet.evaluate(trainingData))
       log.info("***** Evaluation TRAIN DATA *****")
