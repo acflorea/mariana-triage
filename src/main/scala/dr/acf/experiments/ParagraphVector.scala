@@ -3,10 +3,10 @@ package dr.acf.experiments
 import java.io.File
 import java.util
 import java.util.TimeZone
-import java.util.logging.Logger
 
 import com.beust.jcommander.{JCommander, Parameter}
 import dr.acf.utils.{SmartEvaluation, SparkOps, WordVectorSmartSerializer}
+import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
 import org.apache.spark.storage.StorageLevel
 import org.datavec.api.records.reader.RecordReader
@@ -236,7 +236,7 @@ object ParagraphVector extends SparkOps {
 
       // Lister to store model at each phase
       val vectorListener = new VectorsListener[VocabWord] {
-        override def processEvent(event: ListenerEvent, sequenceVectors: SequenceVectors[VocabWord], argument: Long) = {
+        override def processEvent(event: ListenerEvent, sequenceVectors: SequenceVectors[VocabWord], argument: Long): Unit = {
           event match {
             case ListenerEvent.EPOCH if argument % 1 == 0 =>
               log.info("Save vectors....")
@@ -260,7 +260,7 @@ object ParagraphVector extends SparkOps {
       // ParagraphVectors training configuration
       val _paragraphVectors = new ParagraphVectors.Builder()
         .setVectorsListeners(listeners)
-        .layerSize(50)
+        .layerSize(100)
         .learningRate(0.025).minLearningRate(0.001)
         .batchSize(2500).epochs(Args.epochsForEmbeddings)
         .iterate(ptvIterator).trainWordVectors(true)
@@ -292,41 +292,18 @@ object ParagraphVector extends SparkOps {
 
     log.info("Apply Paragraph2Vec ....")
 
-    val broadcastPV = false
+    val broadcastPV = true
     val data =
       if (broadcastPV) {
         val pv = sc.broadcast(paragraphVectors)
-        transformedData.mapPartitions {
-          _ map {
-            case row if row.head.toString.nonEmpty =>
-              seqAsJavaList(pv.value.inferVector(row.head.toString).
-                data().asDouble().map(new DoubleWritable(_)) ++ row.drop(1))
+        transformedData.repartition(sc.defaultParallelism).mapPartitions { it =>
+          it.zipWithIndex.collect { case rowWithIndex if rowWithIndex._1.head.toString.nonEmpty =>
+            addWord2VecPartitions(pv, height, rowWithIndex)
           }
         }.collect().toList
       } else {
         transformedData.collect().zipWithIndex.toList.collect { case rowWithIndex if rowWithIndex._1.head.toString.nonEmpty =>
-          val row = rowWithIndex._1
-          val index = rowWithIndex._2
-          if (index % 100 == 0) log.debug(s"Processed $index rows.")
-
-          val desc = row.head.toString
-          val words = desc.split("\\W+")
-
-          val wordsPerGroup = 5
-
-          val groups = if (words.length < wordsPerGroup * height) {
-            // if less than wordsPerGroup words in a group we pad the input
-            val padded = (0 to (wordsPerGroup * height / words.length)).foldLeft[Array[String]](words) { (acc: Array[String], index: Int) => acc ++ words }
-            val length = padded.length / height
-            (0 until height) map (i => padded.slice(i * length, Math.min(padded.length, (i + 1) * length)))
-          } else {
-            val length = words.length / height
-            (0 until height) map (i => words.slice(i * length, Math.min(words.length, (i + 1) * length)))
-          }
-
-          val vectors = groups map (slice => paragraphVectors.inferVector(slice.mkString(" ")).
-            data().asDouble().map(new DoubleWritable(_)) ++ row.drop(1).dropRight(1))
-          seqAsJavaList(vectors.reduce(_ ++ _) ++ Seq(row.last))
+          addWord2Vec(paragraphVectors, height, rowWithIndex)
         }
       }
 
@@ -340,7 +317,7 @@ object ParagraphVector extends SparkOps {
     val outputNum = possibleLabels
     val iterations = 500
 
-    val layer1width = 100
+    val layer1width = 500
     val learningRate = 0.0018
     val activation = "softsign"
 
@@ -428,12 +405,12 @@ object ParagraphVector extends SparkOps {
         .iterations(iterations)
         .optimizationAlgo(OptimizationAlgorithm.LINE_GRADIENT_DESCENT)
         .list
-        .layer(0, new RBM.Builder().nIn(featureSpaceSize).nOut(10).lossFunction(LossFunctions.LossFunction.RMSE_XENT).build)
-        .layer(1, new RBM.Builder().nIn(10).nOut(10).lossFunction(LossFunctions.LossFunction.RMSE_XENT).build)
-        .layer(2, new RBM.Builder().nIn(10).nOut(10).lossFunction(LossFunctions.LossFunction.RMSE_XENT).build)
-        .layer(3, new RBM.Builder().nIn(10).nOut(10).lossFunction(LossFunctions.LossFunction.RMSE_XENT).build)
-        .layer(4, new RBM.Builder().nIn(10).nOut(10).lossFunction(LossFunctions.LossFunction.RMSE_XENT).build)
-        .layer(5, new OutputLayer.Builder(LossFunctions.LossFunction.MSE).activation("softmax").nIn(10).nOut(outputNum).build)
+        .layer(0, new RBM.Builder().nIn(featureSpaceSize).nOut(500).lossFunction(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).build)
+        //.layer(1, new RBM.Builder().nIn(10).nOut(10).lossFunction(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).build)
+        //.layer(2, new RBM.Builder().nIn(10).nOut(10).lossFunction(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).build)
+        //.layer(3, new RBM.Builder().nIn(10).nOut(10).lossFunction(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).build)
+        //.layer(4, new RBM.Builder().nIn(10).nOut(10).lossFunction(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).build)
+        .layer(1, new OutputLayer.Builder(LossFunctions.LossFunction.MSE).activation("softmax").nIn(500).nOut(outputNum).build)
         .pretrain(true).backprop(true).build
 
       log.info(s"Architecture ${Args.architecture}")
@@ -446,6 +423,7 @@ object ParagraphVector extends SparkOps {
       log.info(s"Network configuration ${active_conf.toString}")
 
       def _net = new MultiLayerNetwork(active_conf)
+
       _net.init()
 
       _net
@@ -495,7 +473,7 @@ object ParagraphVector extends SparkOps {
       log.info(s"Completed Epoch $i")
 
       val locationToSave = new File(s"${Args.architecture}_${Args.inputFileName}_$i.zip")
-      ModelSerializer.writeModel(net, locationToSave, saveUpdater);
+      ModelSerializer.writeModel(net, locationToSave, saveUpdater)
 
       val evaluationTrain: SmartEvaluation = new SmartEvaluation(sparkNet.evaluate(trainingData))
       log.info("***** Evaluation TRAIN DATA *****")
@@ -511,4 +489,58 @@ object ParagraphVector extends SparkOps {
 
   }
 
+  /**
+    * Fill info from Paragraph2Vec
+    *
+    * @param paragraphVectors
+    * @param height
+    * @param rowWithIndex
+    * @return
+    */
+  private def addWord2VecPartitions(paragraphVectors: Broadcast[ParagraphVectors], height: Int, rowWithIndex: (util.List[Writable], Int)) = {
+    addWord2Vec(paragraphVectors.value, height, rowWithIndex)
+  }
+
+  /**
+    * Fill info from Paragraph2Vec
+    *
+    * @param paragraphVectors
+    * @param height
+    * @param rowWithIndex
+    * @return
+    */
+  private def addWord2Vec(paragraphVectors: ParagraphVectors, height: Int, rowWithIndex: (util.List[Writable], Int)) = {
+    val row = rowWithIndex._1
+    val index = rowWithIndex._2
+    if (index % 100 == 0) log.debug(s"Processed $index rows.")
+
+    val desc = row.head.toString
+    val words = desc.split("\\W+")
+
+    val wordsPerGroup = 5
+
+    val placeholder = Array.fill[DoubleWritable](paragraphVectors.getLayerSize)(new DoubleWritable(0)) ++ row.drop(1).dropRight(1)
+
+    if (words.nonEmpty) {
+      val groups = if (words.length < wordsPerGroup * height) {
+        // if less than wordsPerGroup words in a group we pad the input
+        val padded = (0 to (wordsPerGroup * height / words.length)).foldLeft[Array[String]](words) { (acc: Array[String], index: Int) => acc ++ words }
+        val length = padded.length / height
+        (0 until height) map (i => padded.slice(i * length, Math.min(padded.length, (i + 1) * length)))
+      } else {
+        val length = words.length / height
+        (0 until height) map (i => words.slice(i * length, Math.min(words.length, (i + 1) * length)))
+      }
+
+      val vectors = groups map (slice =>
+        Try(paragraphVectors.inferVector(slice.mkString(" ")).
+          data().asDouble().map(new DoubleWritable(_)) ++ row.drop(1).dropRight(1)).
+          getOrElse(placeholder)
+        )
+      seqAsJavaList(vectors.reduce(_ ++ _) ++ Seq(row.last))
+    } else {
+      val vectors = (0 until height) map (index => placeholder)
+      seqAsJavaList(vectors.reduce(_ ++ _) ++ Seq(row.last))
+    }
+  }
 }
