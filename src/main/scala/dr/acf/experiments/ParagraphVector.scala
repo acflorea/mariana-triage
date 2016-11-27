@@ -317,7 +317,7 @@ object ParagraphVector extends SparkOps {
     val outputNum = possibleLabels
     val iterations = 500
 
-    val layer1width = 500
+    val layer1width = 250
     val learningRate = 0.0018
     val activation = "softsign"
 
@@ -336,6 +336,7 @@ object ParagraphVector extends SparkOps {
       log.info(s"Number of features $featureSpaceSize")
 
       val cnn_conf: MultiLayerConfiguration = new NeuralNetConfiguration.Builder()
+        .seed(seed)
         .seed(12345).iterations(iterations).regularization(true).l2(0.0005).learningRate(.01)
         .weightInit(WeightInit.XAVIER).optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
         .updater(Updater.NESTEROVS).momentum(0.9)
@@ -358,6 +359,7 @@ object ParagraphVector extends SparkOps {
         .backprop(true).pretrain(false).build()
 
       val cnn_conf_2: MultiLayerConfiguration = new NeuralNetConfiguration.Builder()
+        .seed(seed)
         .seed(12345).iterations(iterations).regularization(true).l2(0.0005).learningRate(.01)
         .weightInit(WeightInit.XAVIER).optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
         .updater(Updater.NESTEROVS).momentum(0.9)
@@ -381,6 +383,7 @@ object ParagraphVector extends SparkOps {
 
       //Set up network configuration
       val rnn_conf: MultiLayerConfiguration = new NeuralNetConfiguration.Builder()
+        .seed(seed)
         .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
         .iterations(iterations)
         .updater(Updater.RMSPROP)
