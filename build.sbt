@@ -14,10 +14,10 @@ libraryDependencies ++= Seq(
   , "org.deeplearning4j" % "dl4j-spark_2.11" % "0.6.0"
   , "org.nd4j" % "nd4j-native-platform" % "0.6.0"
   , "org.datavec" % "datavec-api" % "0.6.0"
-  , "org.datavec" %% "datavec-spark" % "0.6.0" excludeAll ExclusionRule(artifact = "slf4j-log4j12")
+  , "org.datavec" %% "datavec-spark" % "0.6.0"
 
   , "com.beust" % "jcommander" % "1.7"
-)
+).map (_ excludeAll ExclusionRule (artifact = "slf4j-log4j12"))
 
 dependencyOverrides ++= Set(
   "com.fasterxml.jackson.core" % "jackson-databind" % "2.4.4"

@@ -91,6 +91,11 @@ object ParagraphVector extends SparkOps {
       description = "Source model to start from")
     val sourceModel = "" // start with an existing model
 
+    @Parameter(
+      names = Array("-se", "--startEpoch"),
+      description = "Initial epoch value")
+    val startEpoch = 1 // start with an existing model
+
   }
 
   val severityValues: util.List[String] = util.Arrays.asList("normal", "enhancement", "major", "trivial", "critical", "minor", "blocker")
@@ -311,7 +316,7 @@ object ParagraphVector extends SparkOps {
 
     val featureSpaceSize = height * (paragraphVectors.getLayerSize + components.size() + products.size() + severityValues.size())
 
-    val batchSize = 100
+    val batchSize = 25
     val averagingFrequency = 5
 
     val outputNum = possibleLabels
@@ -341,13 +346,13 @@ object ParagraphVector extends SparkOps {
         .weightInit(WeightInit.XAVIER).optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
         .updater(Updater.NESTEROVS).momentum(0.9)
         .list
-        .layer(0, new ConvolutionLayer.Builder(height, 1).name("conv1")
+        .layer(0, new ConvolutionLayer.Builder(5, 1).name("conv1")
           // nIn is the number of channels, nOut is the number of filters to be applied
           .nIn(1).stride(1, 1).nOut(20)
           .dropOut(0.5)
           .activation("identity").build())
-        .layer(1, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.AVG).name("pooling_1")
-          .kernelSize(1, 1).stride(1, 1).build())
+        .layer(1, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX).name("pooling_1")
+          .kernelSize(3, 1).stride(3, 1).build())
         //     .layer(2, new ConvolutionLayer.Builder(1, 1).name("conv2")
         //       .stride(1, 1).nOut(height).activation("identity").build())
         //     .layer(3, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.AVG).name("pooling_2")
@@ -462,7 +467,7 @@ object ParagraphVector extends SparkOps {
     sparkNet.setListeners(networkListeners)
 
     //Execute training:
-    val numEpochs = 150
+    val numEpochs = 2500
 
     //Perform evaluation (distributed)
     val testData = sc.parallelize(testIterator.toList).persist(StorageLevel.MEMORY_AND_DISK_SER)
@@ -471,7 +476,7 @@ object ParagraphVector extends SparkOps {
     log.info(s"Start training!!!")
 
 
-    (1 to numEpochs) foreach { i =>
+    (Args.startEpoch to numEpochs) foreach { i =>
       sparkNet.fit(trainingData)
       log.info(s"Completed Epoch $i")
 
