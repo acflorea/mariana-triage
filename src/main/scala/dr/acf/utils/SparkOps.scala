@@ -13,7 +13,7 @@ trait SparkOps {
   private val conf: SparkConf = new SparkConf
   conf.setMaster("local[*]")
   conf.setAppName("mariana-triage")
-  conf.set("spark.driver.maxResultSize", "2g")
+  conf.set("spark.driver.maxResultSize", "3g")
   conf.set("spark.executor.extraJavaOptions", "-Dorg.bytedeco.javacpp.maxbytes=5368709120")
   conf.set("spark.driver.extraJavaOptions", "-Dorg.bytedeco.javacpp.maxbytes=5368709120")
 
