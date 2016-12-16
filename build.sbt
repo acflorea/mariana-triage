@@ -21,5 +21,5 @@ libraryDependencies ++= Seq(
 ).map (_ excludeAll ExclusionRule (artifact = "slf4j-log4j12"))
 
 dependencyOverrides ++= Set(
-  "com.fasterxml.jackson.core" % "jackson-databind" % "2.4.4"
+   // "com.fasterxml.jackson.core" % "jackson-databind" % "2.4.4"
 )
