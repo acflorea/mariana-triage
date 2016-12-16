@@ -340,7 +340,7 @@ object ParagraphVector extends SparkOps {
       log.info(s"Number of iterations $iterations")
       log.info(s"Number of features $featureSpaceSize")
 
-      val cnn_conf: MultiLayerConfiguration = new NeuralNetConfiguration.Builder()
+      val cnn_conf: Option[MultiLayerConfiguration] = Try(new NeuralNetConfiguration.Builder()
         .seed(seed)
         .seed(12345).iterations(iterations).regularization(true).l2(0.0005).learningRate(.01)
         .weightInit(WeightInit.XAVIER).optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
@@ -361,9 +361,9 @@ object ParagraphVector extends SparkOps {
         .layer(3, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).nOut(outputNum).activation("softmax").build())
         // height, width, height
         .setInputType(InputType.convolutionalFlat(height, featureSpaceSize / height, 1))
-        .backprop(true).pretrain(false).build()
+        .backprop(true).pretrain(false).build()).toOption
 
-      val cnn_conf_2: MultiLayerConfiguration = new NeuralNetConfiguration.Builder()
+      val cnn_conf_2: Option[MultiLayerConfiguration] = Try(new NeuralNetConfiguration.Builder()
         .seed(seed)
         .seed(12345).iterations(iterations).regularization(true).l2(0.0005).learningRate(.01)
         .weightInit(WeightInit.XAVIER).optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
@@ -384,10 +384,10 @@ object ParagraphVector extends SparkOps {
         .layer(5, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).nOut(outputNum).activation("softmax").build())
         // height, width, height
         .setInputType(InputType.convolutionalFlat(height, featureSpaceSize / height, 1))
-        .backprop(true).pretrain(false).build()
+        .backprop(true).pretrain(false).build()).toOption
 
       //Set up network configuration
-      val rnn_conf: MultiLayerConfiguration = new NeuralNetConfiguration.Builder()
+      val rnn_conf: Option[MultiLayerConfiguration] = Try(new NeuralNetConfiguration.Builder()
         .seed(seed)
         .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
         .iterations(iterations)
@@ -406,9 +406,9 @@ object ParagraphVector extends SparkOps {
           .activation(activation_end)
           .nIn(layer1width).nOut(outputNum)
           .build())
-        .pretrain(false).backprop(true).build
+        .pretrain(false).backprop(true).build).toOption
 
-      val deep_conf: MultiLayerConfiguration = new NeuralNetConfiguration.Builder()
+      val deep_conf: Option[MultiLayerConfiguration] = Try(new NeuralNetConfiguration.Builder()
         .seed(seed)
         .iterations(iterations)
         .optimizationAlgo(OptimizationAlgorithm.LINE_GRADIENT_DESCENT)
@@ -419,13 +419,13 @@ object ParagraphVector extends SparkOps {
         //.layer(3, new RBM.Builder().nIn(10).nOut(10).lossFunction(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).build)
         //.layer(4, new RBM.Builder().nIn(10).nOut(10).lossFunction(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).build)
         .layer(1, new OutputLayer.Builder(LossFunctions.LossFunction.MSE).activation("softmax").nIn(500).nOut(outputNum).build)
-        .pretrain(true).backprop(true).build
+        .pretrain(true).backprop(true).build).toOption
 
       log.info(s"Architecture ${Args.architecture}")
       val active_conf = Args.architecture match {
-        case "cnn" => cnn_conf
-        case "rnn" => rnn_conf
-        case "deep" => deep_conf
+        case "cnn" => cnn_conf.get
+        case "rnn" => rnn_conf.get
+        case "deep" => deep_conf.get
       }
 
       log.info(s"Network configuration ${active_conf.toString}")
