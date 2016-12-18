@@ -9,13 +9,19 @@ import org.apache.spark.{SparkConf, SparkContext}
   */
 trait SparkOps {
 
+  def master: String
+
   //We'll use Spark local to handle our data
-  private val conf: SparkConf = new SparkConf
-  conf.setMaster("local[*]")
-  conf.setAppName("mariana-triage")
-  conf.set("spark.driver.maxResultSize", "3g")
-  conf.set("spark.executor.extraJavaOptions", "-Dorg.bytedeco.javacpp.maxbytes=5368709120")
-  conf.set("spark.driver.extraJavaOptions", "-Dorg.bytedeco.javacpp.maxbytes=5368709120")
+  private lazy val conf: SparkConf = {
+    val _conf = new SparkConf
+
+    _conf.setMaster(master)
+    _conf.setAppName("mariana-triage")
+    _conf.set("spark.driver.maxResultSize", "3g")
+    _conf.set("spark.executor.extraJavaOptions", "-Dorg.bytedeco.javacpp.maxbytes=5368709120")
+    _conf.set("spark.driver.extraJavaOptions", "-Dorg.bytedeco.javacpp.maxbytes=5368709120")
+    _conf
+  }
 
   lazy val sc: SparkContext = {
     val _sc = new SparkContext(conf)

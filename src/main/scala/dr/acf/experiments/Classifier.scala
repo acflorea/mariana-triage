@@ -38,6 +38,8 @@ import scala.util.Try
   */
 object Classifier extends SparkOps {
 
+  val master = "local[*]"
+
   val severityValues = util.Arrays.asList("normal", "enhancement", "major", "trivial", "critical", "minor", "blocker")
   val statusValues = util.Arrays.asList("CLOSED", "RESOLVED", "VERIFIED", "trivial", "critical", "minor")
 

@@ -96,6 +96,15 @@ object ParagraphVector extends SparkOps {
       description = "Initial epoch value")
     val startEpoch = 1 // start with an existing model
 
+    @Parameter(
+      names = Array("-sm", "--sparkMaster"),
+      description = "Spark master")
+    val sm = "local[*]" // start with an existing model
+
+  }
+
+  lazy val master = {
+    Args.sm
   }
 
   val severityValues: util.List[String] = util.Arrays.asList("normal", "enhancement", "major", "trivial", "critical", "minor", "blocker")
@@ -470,8 +479,8 @@ object ParagraphVector extends SparkOps {
     val numEpochs = 2500
 
     //Perform evaluation (distributed)
-    val testData = sc.parallelize(testIterator.toList).persist(StorageLevel.MEMORY_AND_DISK_SER)
-    val trainingData = sc.parallelize(trainIterator.toList).persist(StorageLevel.MEMORY_AND_DISK_SER)
+    val testData = sc.parallelize(testIterator.toList).cache()
+    val trainingData = sc.parallelize(trainIterator.toList).cache()
 
     log.info(s"Start training!!!")
 
