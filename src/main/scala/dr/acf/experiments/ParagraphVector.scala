@@ -8,7 +8,6 @@ import com.beust.jcommander.{JCommander, Parameter}
 import dr.acf.utils.{SmartEvaluation, SparkOps, WordVectorSmartSerializer}
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
-import org.apache.spark.storage.StorageLevel
 import org.datavec.api.records.reader.RecordReader
 import org.datavec.api.records.reader.impl.collection.CollectionRecordReader
 import org.datavec.api.records.reader.impl.csv.CSVRecordReader
