@@ -166,8 +166,8 @@ object ParagraphVector extends SparkOps {
     //=====================================================================
     val filterColumnsTransform: TransformProcess = new TransformProcess.Builder(inputDataSchema)
       //Let's remove some column we don't need
-      //            .filter(new ConditionFilter(new IntegerColumnCondition("class", ConditionOp.GreaterOrEqual, 2)))
-      //.filter(new ConditionFilter(new IntegerColumnCondition("component_id", ConditionOp.NotEqual, 128)))
+      //  .filter(new ConditionFilter(new IntegerColumnCondition("class", ConditionOp.GreaterOrEqual, 20)))
+      //  .filter(new ConditionFilter(new IntegerColumnCondition("component_id", ConditionOp.NotEqual, 128)))
       .removeAllColumnsExceptFor("text", "bug_severity", "component_id", "product_id", "class")
       .reorderColumns("text", "bug_severity", "component_id", "product_id", "class")
       //.removeAllColumnsExceptFor("text", "class")
@@ -358,16 +358,16 @@ object ParagraphVector extends SparkOps {
           // nIn is the number of channels, nOut is the number of filters to be applied
           .nIn(1).stride(1, 1).nOut(20)
           .activation("identity").build())
-        .layer(1, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.AVG).name("pooling_1")
-          .kernelSize(3, 1).stride(3, 1).build())
+        //.layer(1, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.AVG).name("pooling_1")
+        //  .kernelSize(3, 1).stride(3, 1).build())
         //     .layer(2, new ConvolutionLayer.Builder(1, 1).name("conv2")
         //       .stride(1, 1).nOut(height).activation("identity").build())
         //     .layer(3, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.AVG).name("pooling_2")
         //       .kernelSize(1, 1).stride(1, 1).build())
-        .layer(2, new DenseLayer.Builder().activation("relu").nOut(500).build())
-        .layer(3, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).nOut(outputNum).activation("softmax").build())
+        .layer(1, new DenseLayer.Builder().activation("relu").nOut(500).build())
+        .layer(2, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).nOut(outputNum).activation("softmax").build())
         // height, width, height
-        .setInputType(InputType.convolutionalFlat(height, featureSpaceSize, 1))
+        .setInputType(InputType.convolutionalFlat(height, featureSpaceSize / height, 1))
         .backprop(true).pretrain(false).build()).toOption
 
       val cnn_conf_2: Option[MultiLayerConfiguration] = Try(new NeuralNetConfiguration.Builder()
@@ -459,7 +459,7 @@ object ParagraphVector extends SparkOps {
     // train data
     val trainRecordReader = new CollectionRecordReader(_trainingData)
     val trainIterator: DataSetIterator =
-      new RecordReaderDataSetIterator(trainRecordReader, Math.min(_trainingData.size, batchSize), featureSpaceSize, possibleLabels)
+      new RecordReaderDataSetIterator(trainRecordReader, _trainingData.size, featureSpaceSize, possibleLabels)
 
     // test data
     val testRecordReader = new CollectionRecordReader(_testData)
