@@ -1,17 +1,18 @@
 name := "mariana-triage"
 
-version := "1.1"
+version := "1.2"
 
 packAutoSettings
 
-scalaVersion := "2.11.8"
+scalaVersion := "2.10.6"
+autoScalaLibrary := false
 
 val dl4jVersion = "0.7.1"
 
 libraryDependencies ++= Seq(
   "org.deeplearning4j" % "deeplearning4j-core" % dl4jVersion
   , "org.deeplearning4j" % "deeplearning4j-nlp" % dl4jVersion excludeAll ExclusionRule(organization = "ch.qos.logback")
-  , "org.deeplearning4j" % "dl4j-spark_2.11" % dl4jVersion
+  , "org.deeplearning4j" % "dl4j-spark_2.10" % dl4jVersion
   , "org.nd4j" % "nd4j-native-platform" % dl4jVersion
   , "org.nd4j" % "nd4j-native" % dl4jVersion
   , "org.datavec" % "datavec-api" % dl4jVersion

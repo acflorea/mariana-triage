@@ -212,7 +212,7 @@ object ParagraphVector extends SparkOps {
         writables.get(0).toString
     }
 
-    distinctClasses.zipWithIndex map { classWithIndex =>
+    distinctClasses.zipWithIndex foreach { classWithIndex =>
       classes.put(classWithIndex._1, classWithIndex._2.toString)
     }
 
@@ -358,7 +358,6 @@ object ParagraphVector extends SparkOps {
         .layer(0, new ConvolutionLayer.Builder(5, 1).name("conv1")
           // nIn is the number of channels, nOut is the number of filters to be applied
           .nIn(1).stride(1, 1).nOut(20)
-          .dropOut(0.5)
           .activation("identity").build())
         .layer(1, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.AVG).name("pooling_1")
           .kernelSize(3, 1).stride(3, 1).build())
@@ -369,7 +368,7 @@ object ParagraphVector extends SparkOps {
         .layer(2, new DenseLayer.Builder().activation("relu").nOut(500).build())
         .layer(3, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).nOut(outputNum).activation("softmax").build())
         // height, width, height
-        .setInputType(InputType.convolutionalFlat(height, featureSpaceSize / height, 1))
+        .setInputType(InputType.convolutionalFlat(height, featureSpaceSize, 1))
         .backprop(true).pretrain(false).build()).toOption
 
       val cnn_conf_2: Option[MultiLayerConfiguration] = Try(new NeuralNetConfiguration.Builder()
@@ -392,7 +391,7 @@ object ParagraphVector extends SparkOps {
         .layer(4, new DenseLayer.Builder().activation("relu").nOut(500).build())
         .layer(5, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).nOut(outputNum).activation("softmax").build())
         // height, width, height
-        .setInputType(InputType.convolutionalFlat(height, featureSpaceSize / height, 1))
+        .setInputType(InputType.convolutionalFlat(height, featureSpaceSize, 1))
         .backprop(true).pretrain(false).build()).toOption
 
       //Set up network configuration
