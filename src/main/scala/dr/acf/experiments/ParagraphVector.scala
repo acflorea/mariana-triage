@@ -360,7 +360,7 @@ object ParagraphVector extends SparkOps {
           .nIn(1).stride(1, 1).nOut(20)
           .dropOut(0.5)
           .activation("identity").build())
-        .layer(1, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX).name("pooling_1")
+        .layer(1, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.AVG).name("pooling_1")
           .kernelSize(3, 1).stride(3, 1).build())
         //     .layer(2, new ConvolutionLayer.Builder(1, 1).name("conv2")
         //       .stride(1, 1).nOut(height).activation("identity").build())
