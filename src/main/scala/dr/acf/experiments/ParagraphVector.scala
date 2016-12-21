@@ -100,6 +100,7 @@ object ParagraphVector extends SparkOps {
       description = "Spark master")
     val sm = "local[*]" // start with an existing model
 
+
   }
 
   lazy val master = {
@@ -270,14 +271,29 @@ object ParagraphVector extends SparkOps {
       listeners.add(vectorListener)
 
       log.info("Build Embedded Vectors ....")
+
       // ParagraphVectors training configuration
-      val _paragraphVectors = new ParagraphVectors.Builder()
-        .setVectorsListeners(listeners)
-        .layerSize(100)
-        .learningRate(0.025).minLearningRate(0.001)
-        .batchSize(2500).epochs(Args.epochsForEmbeddings)
-        .iterate(ptvIterator).trainWordVectors(true)
-        .tokenizerFactory(tokenizerFactory).build
+      val _paragraphVectors = if (Args.sourceModel != "") {
+        // start with initial vactors
+        log.info("Load Initial Vectors ....")
+        val _initialPV = WordVectorSmartSerializer.readParagraphVectors(new File(Args.resourceFolder + Args.sourceModel))
+        new ParagraphVectors.Builder()
+          .useExistingWordVectors(_initialPV)
+          .setVectorsListeners(listeners)
+          .layerSize(100)
+          .learningRate(0.025).minLearningRate(0.001)
+          .batchSize(2500).epochs(Args.epochsForEmbeddings)
+          .iterate(ptvIterator).trainWordVectors(true)
+          .tokenizerFactory(tokenizerFactory).build
+      } else {
+        new ParagraphVectors.Builder()
+          .setVectorsListeners(listeners)
+          .layerSize(100)
+          .learningRate(0.025).minLearningRate(0.001)
+          .batchSize(2500).epochs(Args.epochsForEmbeddings)
+          .iterate(ptvIterator).trainWordVectors(true)
+          .tokenizerFactory(tokenizerFactory).build
+      }
 
       // Start model training
       _paragraphVectors.fit()
@@ -335,12 +351,6 @@ object ParagraphVector extends SparkOps {
     val activation = "softsign"
 
     val activation_end = "softmax"
-
-    val tm = new ParameterAveragingTrainingMaster.Builder(1)
-      .averagingFrequency(averagingFrequency)
-      .workerPrefetchNumBatches(2)
-      .batchSizePerWorker(batchSize)
-      .build()
 
     val net = if (Args.sourceModel.trim == "") {
 
@@ -456,10 +466,12 @@ object ParagraphVector extends SparkOps {
 
     val (_trainingData, _testData) = data.splitAt(9 * data.size / 10)
 
+    val trainBatchSize = _trainingData.size / sc.defaultParallelism / 25
+
     // train data
     val trainRecordReader = new CollectionRecordReader(_trainingData)
     val trainIterator: DataSetIterator =
-      new RecordReaderDataSetIterator(trainRecordReader, _trainingData.size, featureSpaceSize, possibleLabels)
+      new RecordReaderDataSetIterator(trainRecordReader, trainBatchSize, featureSpaceSize, possibleLabels)
 
     // test data
     val testRecordReader = new CollectionRecordReader(_testData)
@@ -467,6 +479,12 @@ object ParagraphVector extends SparkOps {
       new RecordReaderDataSetIterator(testRecordReader, _testData.length, featureSpaceSize, possibleLabels)
 
     val saveUpdater = true
+
+    val tm = new ParameterAveragingTrainingMaster.Builder(trainBatchSize)
+      .averagingFrequency(averagingFrequency)
+      .workerPrefetchNumBatches(2)
+      .batchSizePerWorker(trainBatchSize)
+      .build()
 
     val networkListeners = new util.ArrayList[IterationListener]()
     networkListeners.add(new ScoreIterationListener(iterations / 5))
