@@ -4,11 +4,9 @@ import java.io.File
 import java.util
 import java.util.TimeZone
 
-import com.beust.jcommander.{JCommander, Parameter}
 import dr.acf.utils.{SmartEvaluation, SparkOps, WordVectorSmartSerializer}
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
-import org.apache.spark.storage.StorageLevel
 import org.datavec.api.records.reader.RecordReader
 import org.datavec.api.records.reader.impl.collection.CollectionRecordReader
 import org.datavec.api.records.reader.impl.csv.CSVRecordReader
@@ -51,62 +49,6 @@ import scala.util.Try
   */
 object ParagraphVector extends SparkOps {
 
-  object Args {
-    // Declared as var because JCommander assigns a new collection declared
-    // as java.util.List because that's what JCommander will replace it with.
-    // It'd be nice if JCommander would just use the provided List so this
-    // could be a val and a Scala LinkedList.
-    @Parameter(
-      names = Array("-rf", "--resourceFolder"),
-      description = "Location of resource files.")
-    var resourceFolder: String = "/Uers/aflorea/phd/mariana-triage/data"
-
-    @Parameter(
-      names = Array("-f", "--inputFile"),
-      description = "Input File name")
-    val inputFileName = "netbeansbugs_filtered.csv"
-
-    @Parameter(
-      names = Array("-ce", "--computeEmbeddings"),
-      description = "Weather to compute the embeddings or attempt to load an existing model")
-    val computeEmbeddings = false
-
-    @Parameter(
-      names = Array("-ep", "--epochs"),
-      description = "Number of epochs for embeddings")
-    val epochsForEmbeddings = 20
-
-    @Parameter(
-      names = Array("-m", "--model"),
-      description = "Name of model file to user")
-    val model = "netbeans"
-
-    @Parameter(
-      names = Array("-a", "--architecture"),
-      description = "Type of the architecture to use")
-    val architecture = "rnn" // rnn, cnn, deep
-
-    @Parameter(
-      names = Array("-s", "--source"),
-      description = "Source model to start from")
-    val sourceModel = "" // start with an existing model
-
-    @Parameter(
-      names = Array("-se", "--startEpoch"),
-      description = "Initial epoch value")
-    val startEpoch = 1 // start with an existing model
-
-    @Parameter(
-      names = Array("-sm", "--sparkMaster"),
-      description = "Spark master")
-    val sm = "local[*]" // start with an existing model
-
-  }
-
-  lazy val master = {
-    Args.sm
-  }
-
   val severityValues: util.List[String] = util.Arrays.asList("normal", "enhancement", "major", "trivial", "critical", "minor", "blocker")
   val statusValues: util.List[String] = util.Arrays.asList("CLOSED", "RESOLVED", "VERIFIED", "trivial", "critical", "minor")
 
@@ -140,18 +82,33 @@ object ParagraphVector extends SparkOps {
 
   def main(args: Array[String]): Unit = {
 
-    // Initialize jCommander
-    new JCommander(Args, args.toArray: _*)
+    // Location of resource files.
+    val resourceFolder = conf.getString("global.resourceFolder")
+    // Input File name
+    val inputFileName = conf.getString("global.inputFileName")
+    // Weather to compute the embeddings or attempt to load an existing model
+    val computeEmbeddings = conf.getBoolean("global.computeEmbeddings")
+    // Number of epochs for embeddings
+    val epochsForEmbeddings = conf.getInt("global.epochsForEmbeddings")
+    // Name of model file to user
+    val model = conf.getString("global.model")
+    // Type of the architecture to use
+    val architecture = conf.getString("global.architecture")
+    // Source model to start from
+    val sourceModel = conf.getString("global.sourceModel")
+    // Initial epoch value
+    val startEpoch = conf.getInt("global.startEpoch")
 
-    lazy val modelName = if (Args.epochsForEmbeddings < 10)
-      s"${Args.model}_0${Args.epochsForEmbeddings}.model"
+
+    lazy val modelName = if (epochsForEmbeddings < 10)
+      s"${model}_0${epochsForEmbeddings}.model"
     else
-      s"${Args.model}_${Args.epochsForEmbeddings}.model"
+      s"${model}_${epochsForEmbeddings}.model"
 
-    log.debug(s"Resource folder is ${Args.resourceFolder}")
-    log.debug(s"Input file is ${Args.inputFileName}")
-    log.debug(s"Compute embeddings is ${Args.computeEmbeddings}")
-    log.debug(s"Number of embedding epochs is ${Args.epochsForEmbeddings}")
+    log.debug(s"Resource folder is ${resourceFolder}")
+    log.debug(s"Input file is ${inputFileName}")
+    log.debug(s"Compute embeddings is ${computeEmbeddings}")
+    log.debug(s"Number of embedding epochs is ${epochsForEmbeddings}")
 
     //Print out the schema:
     log.info("Input data schema details:")
@@ -184,7 +141,7 @@ object ParagraphVector extends SparkOps {
     //=====================================================================
     //            Step 2.b: Transform
     //=====================================================================
-    val directory: String = Args.resourceFolder + Args.inputFileName
+    val directory: String = resourceFolder + inputFileName
     val stringData: RDD[String] = sc.textFile(directory)
 
     //We first need to parse this format. It's comma-delimited (CSV) format, so let's parse it using CSVRecordReader:
@@ -242,11 +199,13 @@ object ParagraphVector extends SparkOps {
 
     // build a iterator for our dataset
     val ptvIterator = new CollectionSentenceIterator(descs.flatMap(_.split("\\. ")).toList)
+    val prvRDD = sc.parallelize(descs.flatMap(_.split("\\. ")).toList)
+
     //
     val tokenizerFactory = new DefaultTokenizerFactory
     tokenizerFactory.setTokenPreProcessor(new CommonPreprocessor)
 
-    val paragraphVectors = if (Args.computeEmbeddings) {
+    val paragraphVectors = if (computeEmbeddings) {
 
       // Lister to store model at each phase
       val vectorListener = new VectorsListener[VocabWord] {
@@ -255,11 +214,11 @@ object ParagraphVector extends SparkOps {
             case ListenerEvent.EPOCH if argument % 1 == 0 =>
               log.info("Save vectors....")
               lazy val _modelName = if (argument < 10)
-                s"${Args.model}_0$argument.model"
+                s"${model}_0$argument.model"
               else
-                s"${Args.model}_$argument.model"
+                s"${model}_$argument.model"
               WordVectorSmartSerializer
-                .writeParagraphVectors(sequenceVectors.asInstanceOf[ParagraphVectors], Args.resourceFolder + modelName)
+                .writeParagraphVectors(sequenceVectors.asInstanceOf[ParagraphVectors], resourceFolder + modelName)
             case _ =>
           }
         }
@@ -270,13 +229,16 @@ object ParagraphVector extends SparkOps {
       val listeners = new util.ArrayList[VectorsListener[VocabWord]]()
       listeners.add(vectorListener)
 
+      val _existingModel = WordVectorSmartSerializer.readParagraphVectors(new File(resourceFolder + modelName))
+
       log.info("Build Embedded Vectors ....")
       // ParagraphVectors training configuration
       val _paragraphVectors = new ParagraphVectors.Builder()
         .setVectorsListeners(listeners)
         .layerSize(100)
+        .useExistingWordVectors(_existingModel)
         .learningRate(0.025).minLearningRate(0.001)
-        .batchSize(2500).epochs(Args.epochsForEmbeddings)
+        .batchSize(2500).epochs(epochsForEmbeddings)
         .iterate(ptvIterator).trainWordVectors(true)
         .tokenizerFactory(tokenizerFactory).build
 
@@ -284,13 +246,13 @@ object ParagraphVector extends SparkOps {
       _paragraphVectors.fit()
 
       log.info("Save vectors....")
-      WordVectorSmartSerializer.writeParagraphVectors(_paragraphVectors, Args.resourceFolder + modelName)
+      WordVectorSmartSerializer.writeParagraphVectors(_paragraphVectors, resourceFolder + modelName)
       _paragraphVectors
 
     } else {
 
       log.info("Load Embedded Vectors ....")
-      val _paragraphVectors = WordVectorSmartSerializer.readParagraphVectors(new File(Args.resourceFolder + modelName))
+      val _paragraphVectors = WordVectorSmartSerializer.readParagraphVectors(new File(resourceFolder + modelName))
       _paragraphVectors.setTokenizerFactory(tokenizerFactory)
       _paragraphVectors
 
@@ -298,7 +260,7 @@ object ParagraphVector extends SparkOps {
 
     log.info("Embedded Vectors OK ....")
 
-    val height = Args.architecture match {
+    val height = architecture match {
       case "cnn" => 25
       case "rnn" => 1
       case "deep" => 1
@@ -343,7 +305,7 @@ object ParagraphVector extends SparkOps {
       .batchSizePerWorker(batchSize)
       .build()
 
-    val net = if (Args.sourceModel.trim == "") {
+    val net = if (sourceModel.trim == "") {
 
       log.info("Build model....")
       log.info(s"Number of iterations $iterations")
@@ -430,8 +392,8 @@ object ParagraphVector extends SparkOps {
         .layer(1, new OutputLayer.Builder(LossFunctions.LossFunction.MSE).activation("softmax").nIn(500).nOut(outputNum).build)
         .pretrain(true).backprop(true).build).toOption
 
-      log.info(s"Architecture ${Args.architecture}")
-      val active_conf = Args.architecture match {
+      log.info(s"Architecture ${architecture}")
+      val active_conf = architecture match {
         case "cnn" => cnn_conf.get
         case "rnn" => rnn_conf.get
         case "deep" => deep_conf.get
@@ -448,7 +410,7 @@ object ParagraphVector extends SparkOps {
     } else {
 
       //Load the model
-      val locationToSave = new File(s"${Args.sourceModel}")
+      val locationToSave = new File(s"${sourceModel}")
       val restored = ModelSerializer.restoreMultiLayerNetwork(locationToSave)
       restored.init()
 
@@ -485,11 +447,11 @@ object ParagraphVector extends SparkOps {
     log.info(s"Start training!!!")
 
 
-    (Args.startEpoch to numEpochs) foreach { i =>
+    (startEpoch to numEpochs) foreach { i =>
       sparkNet.fit(trainingData)
       log.info(s"Completed Epoch $i")
 
-      val locationToSave = new File(s"${Args.architecture}_${Args.inputFileName}_$i.zip")
+      val locationToSave = new File(s"${architecture}_${inputFileName}_$i.zip")
       ModelSerializer.writeModel(net, locationToSave, saveUpdater)
 
       val evaluationTrain: SmartEvaluation = new SmartEvaluation(sparkNet.evaluate(trainingData))

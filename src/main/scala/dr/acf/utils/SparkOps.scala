@@ -1,5 +1,6 @@
 package dr.acf.utils
 
+import com.typesafe.config.ConfigFactory
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.{SparkConf, SparkContext}
 
@@ -9,27 +10,21 @@ import org.apache.spark.{SparkConf, SparkContext}
   */
 trait SparkOps {
 
-  def master: String
-
-  //We'll use Spark local to handle our data
-  private lazy val conf: SparkConf = {
-    val _conf = new SparkConf
-
-    _conf.setMaster(master)
-    _conf.setAppName("mariana-triage")
-    _conf.set("spark.driver.maxResultSize", "3g")
-    _conf.set("spark.executor.extraJavaOptions", "-Dorg.bytedeco.javacpp.maxbytes=5368709120")
-    _conf.set("spark.driver.extraJavaOptions", "-Dorg.bytedeco.javacpp.maxbytes=5368709120")
-    _conf
-  }
+  val conf = ConfigFactory.load().getConfig("mariana")
 
   lazy val sc: SparkContext = {
-    val _sc = new SparkContext(conf)
+    val master = conf.getString("spark.master")
+    val appName = conf.getString("spark.appName")
 
-    val rootLogger = Logger.getRootLogger
-    rootLogger.setLevel(Level.WARN)
+    val sparkConf = new SparkConf().setAppName(appName)
+    sparkConf.set("spark.driver.maxResultSize", conf.getString("spark.driver.maxResultSize"))
 
-    _sc
+    // JavaCPP
+    sparkConf.set("spark.executor.extraJavaOptions", "-Dorg.bytedeco.javacpp.maxbytes=5368709120")
+    sparkConf.set("spark.driver.extraJavaOptions", "-Dorg.bytedeco.javacpp.maxbytes=5368709120")
+
+    new SparkContext(sparkConf)
+
   }
 
 }
