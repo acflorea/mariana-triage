@@ -148,6 +148,9 @@ object ParagraphVector extends SparkOps {
     else
       s"${Args.model}_${Args.epochsForEmbeddings}.model"
 
+    log.debug(s"Spark Master is ${sc.master}")
+    log.debug(s"Default parallelism is ${sc.defaultParallelism}")
+
     log.debug(s"Resource folder is ${Args.resourceFolder}")
     log.debug(s"Input file is ${Args.inputFileName}")
     log.debug(s"Compute embeddings is ${Args.computeEmbeddings}")
@@ -466,7 +469,7 @@ object ParagraphVector extends SparkOps {
 
     val (_trainingData, _testData) = data.splitAt(9 * data.size / 10)
 
-    val trainBatchSize = _trainingData.size / sc.defaultParallelism / 25
+    val trainBatchSize = _trainingData.size / sc.defaultParallelism / 15
 
     // train data
     val trainRecordReader = new CollectionRecordReader(_trainingData)
@@ -480,17 +483,6 @@ object ParagraphVector extends SparkOps {
 
     val saveUpdater = true
 
-    val tm = new ParameterAveragingTrainingMaster.Builder(trainBatchSize)
-      .averagingFrequency(averagingFrequency)
-      .workerPrefetchNumBatches(2)
-      .batchSizePerWorker(trainBatchSize)
-      .build()
-
-    val networkListeners = new util.ArrayList[IterationListener]()
-    networkListeners.add(new ScoreIterationListener(iterations / 5))
-    val sparkNet = new SparkDl4jMultiLayer(sc, net, tm)
-    sparkNet.setListeners(networkListeners)
-
     //Execute training:
     val numEpochs = 2500
 
@@ -498,8 +490,18 @@ object ParagraphVector extends SparkOps {
     val testData = sc.parallelize(testIterator.toList).cache()
     val trainingData = sc.parallelize(trainIterator.toList).cache()
 
-    log.info(s"Start training!!!")
+    val tm = new ParameterAveragingTrainingMaster.Builder(trainBatchSize)
+      .averagingFrequency(averagingFrequency)
+      .workerPrefetchNumBatches(2)
+      .batchSizePerWorker(batchSize)
+      .build()
 
+    val networkListeners = new util.ArrayList[IterationListener]()
+    networkListeners.add(new ScoreIterationListener(iterations / 5))
+    val sparkNet = new SparkDl4jMultiLayer(sc, net, tm)
+    sparkNet.setListeners(networkListeners)
+
+    log.info(s"Start training!!!")
 
     (Args.startEpoch to numEpochs) foreach { i =>
       sparkNet.fit(trainingData)
