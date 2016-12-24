@@ -238,13 +238,13 @@ object ParagraphVector extends SparkOps {
       val _paragraphVectors = if (sourceModel != "") {
         // start with initial vactors
         log.info("Load Initial Vectors ....")
-        val _initialPV = WordVectorSmartSerializer.readParagraphVectors(new File(Args.resourceFolder + Args.sourceModel))
+        val _initialPV = WordVectorSmartSerializer.readParagraphVectors(new File(resourceFolder + sourceModel))
         new ParagraphVectors.Builder()
           .useExistingWordVectors(_initialPV)
           .setVectorsListeners(listeners)
           .layerSize(100)
           .learningRate(0.025).minLearningRate(0.001)
-          .batchSize(2500).epochs(Args.epochsForEmbeddings)
+          .batchSize(2500).epochs(epochsForEmbeddings)
           .iterate(ptvIterator).trainWordVectors(true)
           .tokenizerFactory(tokenizerFactory).build
       } else {
@@ -252,7 +252,7 @@ object ParagraphVector extends SparkOps {
           .setVectorsListeners(listeners)
           .layerSize(100)
           .learningRate(0.025).minLearningRate(0.001)
-          .batchSize(2500).epochs(Args.epochsForEmbeddings)
+          .batchSize(2500).epochs(epochsForEmbeddings)
           .iterate(ptvIterator).trainWordVectors(true)
           .tokenizerFactory(tokenizerFactory).build
       }
@@ -314,7 +314,7 @@ object ParagraphVector extends SparkOps {
 
     val activation_end = "softmax"
 
-    val net = if (Args.sourceModel.trim == "") {
+    val net = if (sourceModel.trim == "") {
 
       log.info("Build model....")
       log.info(s"Number of iterations $iterations")
