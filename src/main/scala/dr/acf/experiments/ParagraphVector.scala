@@ -105,6 +105,9 @@ object ParagraphVector extends SparkOps {
     else
       s"${model}_${epochsForEmbeddings}.model"
 
+    log.debug(s"Spark Master is ${sc.master}")
+    log.debug(s"Default parallelism is ${sc.defaultParallelism}")
+
     log.debug(s"Resource folder is ${resourceFolder}")
     log.debug(s"Input file is ${inputFileName}")
     log.debug(s"Compute embeddings is ${computeEmbeddings}")
@@ -124,8 +127,8 @@ object ParagraphVector extends SparkOps {
     //=====================================================================
     val filterColumnsTransform: TransformProcess = new TransformProcess.Builder(inputDataSchema)
       //Let's remove some column we don't need
-      //            .filter(new ConditionFilter(new IntegerColumnCondition("class", ConditionOp.GreaterOrEqual, 2)))
-      //.filter(new ConditionFilter(new IntegerColumnCondition("component_id", ConditionOp.NotEqual, 128)))
+      //  .filter(new ConditionFilter(new IntegerColumnCondition("class", ConditionOp.GreaterOrEqual, 20)))
+      //  .filter(new ConditionFilter(new IntegerColumnCondition("component_id", ConditionOp.NotEqual, 128)))
       .removeAllColumnsExceptFor("text", "bug_severity", "component_id", "product_id", "class")
       .reorderColumns("text", "bug_severity", "component_id", "product_id", "class")
       //.removeAllColumnsExceptFor("text", "class")
@@ -169,7 +172,7 @@ object ParagraphVector extends SparkOps {
         writables.get(0).toString
     }
 
-    distinctClasses.zipWithIndex map { classWithIndex =>
+    distinctClasses.zipWithIndex foreach { classWithIndex =>
       classes.put(classWithIndex._1, classWithIndex._2.toString)
     }
 
@@ -229,18 +232,30 @@ object ParagraphVector extends SparkOps {
       val listeners = new util.ArrayList[VectorsListener[VocabWord]]()
       listeners.add(vectorListener)
 
-      val _existingModel = WordVectorSmartSerializer.readParagraphVectors(new File(resourceFolder + modelName))
-
       log.info("Build Embedded Vectors ....")
+
       // ParagraphVectors training configuration
-      val _paragraphVectors = new ParagraphVectors.Builder()
-        .setVectorsListeners(listeners)
-        .layerSize(100)
-        .useExistingWordVectors(_existingModel)
-        .learningRate(0.025).minLearningRate(0.001)
-        .batchSize(2500).epochs(epochsForEmbeddings)
-        .iterate(ptvIterator).trainWordVectors(true)
-        .tokenizerFactory(tokenizerFactory).build
+      val _paragraphVectors = if (sourceModel != "") {
+        // start with initial vactors
+        log.info("Load Initial Vectors ....")
+        val _initialPV = WordVectorSmartSerializer.readParagraphVectors(new File(Args.resourceFolder + Args.sourceModel))
+        new ParagraphVectors.Builder()
+          .useExistingWordVectors(_initialPV)
+          .setVectorsListeners(listeners)
+          .layerSize(100)
+          .learningRate(0.025).minLearningRate(0.001)
+          .batchSize(2500).epochs(Args.epochsForEmbeddings)
+          .iterate(ptvIterator).trainWordVectors(true)
+          .tokenizerFactory(tokenizerFactory).build
+      } else {
+        new ParagraphVectors.Builder()
+          .setVectorsListeners(listeners)
+          .layerSize(100)
+          .learningRate(0.025).minLearningRate(0.001)
+          .batchSize(2500).epochs(Args.epochsForEmbeddings)
+          .iterate(ptvIterator).trainWordVectors(true)
+          .tokenizerFactory(tokenizerFactory).build
+      }
 
       // Start model training
       _paragraphVectors.fit()
@@ -299,13 +314,7 @@ object ParagraphVector extends SparkOps {
 
     val activation_end = "softmax"
 
-    val tm = new ParameterAveragingTrainingMaster.Builder(1)
-      .averagingFrequency(averagingFrequency)
-      .workerPrefetchNumBatches(2)
-      .batchSizePerWorker(batchSize)
-      .build()
-
-    val net = if (sourceModel.trim == "") {
+    val net = if (Args.sourceModel.trim == "") {
 
       log.info("Build model....")
       log.info(s"Number of iterations $iterations")
@@ -320,16 +329,15 @@ object ParagraphVector extends SparkOps {
         .layer(0, new ConvolutionLayer.Builder(5, 1).name("conv1")
           // nIn is the number of channels, nOut is the number of filters to be applied
           .nIn(1).stride(1, 1).nOut(20)
-          .dropOut(0.5)
           .activation("identity").build())
-        .layer(1, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.AVG).name("pooling_1")
-          .kernelSize(3, 1).stride(3, 1).build())
+        //.layer(1, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.AVG).name("pooling_1")
+        //  .kernelSize(3, 1).stride(3, 1).build())
         //     .layer(2, new ConvolutionLayer.Builder(1, 1).name("conv2")
         //       .stride(1, 1).nOut(height).activation("identity").build())
         //     .layer(3, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.AVG).name("pooling_2")
         //       .kernelSize(1, 1).stride(1, 1).build())
-        .layer(2, new DenseLayer.Builder().activation("relu").nOut(500).build())
-        .layer(3, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).nOut(outputNum).activation("softmax").build())
+        .layer(1, new DenseLayer.Builder().activation("relu").nOut(500).build())
+        .layer(2, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).nOut(outputNum).activation("softmax").build())
         // height, width, height
         .setInputType(InputType.convolutionalFlat(height, featureSpaceSize / height, 1))
         .backprop(true).pretrain(false).build()).toOption
@@ -354,7 +362,7 @@ object ParagraphVector extends SparkOps {
         .layer(4, new DenseLayer.Builder().activation("relu").nOut(500).build())
         .layer(5, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).nOut(outputNum).activation("softmax").build())
         // height, width, height
-        .setInputType(InputType.convolutionalFlat(height, featureSpaceSize / height, 1))
+        .setInputType(InputType.convolutionalFlat(height, featureSpaceSize, 1))
         .backprop(true).pretrain(false).build()).toOption
 
       //Set up network configuration
@@ -420,10 +428,12 @@ object ParagraphVector extends SparkOps {
 
     val (_trainingData, _testData) = data.splitAt(9 * data.size / 10)
 
+    val trainBatchSize = _trainingData.size / sc.defaultParallelism / 15
+
     // train data
     val trainRecordReader = new CollectionRecordReader(_trainingData)
     val trainIterator: DataSetIterator =
-      new RecordReaderDataSetIterator(trainRecordReader, Math.min(_trainingData.size, batchSize), featureSpaceSize, possibleLabels)
+      new RecordReaderDataSetIterator(trainRecordReader, trainBatchSize, featureSpaceSize, possibleLabels)
 
     // test data
     val testRecordReader = new CollectionRecordReader(_testData)
@@ -432,17 +442,23 @@ object ParagraphVector extends SparkOps {
 
     val saveUpdater = true
 
-    val networkListeners = new util.ArrayList[IterationListener]()
-    networkListeners.add(new ScoreIterationListener(iterations / 5))
-    val sparkNet = new SparkDl4jMultiLayer(sc, net, tm)
-    sparkNet.setListeners(networkListeners)
-
     //Execute training:
     val numEpochs = 2500
 
     //Perform evaluation (distributed)
     val testData = sc.parallelize(testIterator.toList).cache()
     val trainingData = sc.parallelize(trainIterator.toList).cache()
+
+    val tm = new ParameterAveragingTrainingMaster.Builder(trainBatchSize)
+      .averagingFrequency(averagingFrequency)
+      .workerPrefetchNumBatches(2)
+      .batchSizePerWorker(batchSize)
+      .build()
+
+    val networkListeners = new util.ArrayList[IterationListener]()
+    networkListeners.add(new ScoreIterationListener(iterations / 5))
+    val sparkNet = new SparkDl4jMultiLayer(sc, net, tm)
+    sparkNet.setListeners(networkListeners)
 
     log.info(s"Start training!!!")
 

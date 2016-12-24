@@ -1,10 +1,11 @@
 name := "mariana-triage"
 
-version := "1.1"
+version := "1.2"
 
 packAutoSettings
 
-scalaVersion := "2.10.8"
+scalaVersion := "2.10.6"
+autoScalaLibrary := false
 
 val dl4jVersion = "0.7.1"
 val nd4jVersion = "0.7.1"
