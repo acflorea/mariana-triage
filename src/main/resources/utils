@@ -1,0 +1,13 @@
+./bin/spark-submit \
+--class dr.acf.recc.PerfMetrics \
+--master=local[1] \
+--executor-memory 20G \
+--driver-java-options "-Xmx32G -Dconfig.file=./columbugus-conf/netbeans.conf" \
+~/phd/columbugus/target/scala-2.10/columbugus-assembly-2.1.jar
+
+~/ibm/spark-dk-1.6.3.0/spark/bin/spark-submit \
+--class dr.acf.experiments.ParagraphVector \
+--master=local[20] \
+--executor-memory 20G \
+--driver-java-options "-Xmx32G -Dconfig.file=/opt/mariana-triage/code/application.conf" \
+/opt/mariana-triage/code//mariana-triage-assembly-1.2.jar

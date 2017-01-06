@@ -145,7 +145,7 @@ object ParagraphVector extends SparkOps {
     //            Step 2.b: Transform
     //=====================================================================
     val directory: String = resourceFolder + inputFileName
-    val stringData: RDD[String] = sc.textFile(directory)
+    val stringData: RDD[String] = sc.textFile(s"file:$directory")
 
     //We first need to parse this format. It's comma-delimited (CSV) format, so let's parse it using CSVRecordReader:
     val rr: RecordReader = new CSVRecordReader(0, CSVRecordReader.DEFAULT_DELIMITER)
@@ -214,7 +214,7 @@ object ParagraphVector extends SparkOps {
       val vectorListener = new VectorsListener[VocabWord] {
         override def processEvent(event: ListenerEvent, sequenceVectors: SequenceVectors[VocabWord], argument: Long): Unit = {
           event match {
-            case ListenerEvent.EPOCH if argument % 1 == 0 =>
+            case ListenerEvent.EPOCH if argument % 10 == 0 =>
               log.info("Save vectors....")
               lazy val _modelName = if (argument < 10)
                 s"${model}_0$argument.model"
