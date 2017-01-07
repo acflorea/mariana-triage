@@ -101,17 +101,17 @@ object ParagraphVector extends SparkOps {
 
 
     lazy val modelName = if (epochsForEmbeddings < 10)
-      s"${model}_0${epochsForEmbeddings}.model"
+      s"${model}_0$epochsForEmbeddings.model"
     else
-      s"${model}_${epochsForEmbeddings}.model"
+      s"${model}_$epochsForEmbeddings.model"
 
     log.debug(s"Spark Master is ${sc.master}")
     log.debug(s"Default parallelism is ${sc.defaultParallelism}")
 
-    log.debug(s"Resource folder is ${resourceFolder}")
-    log.debug(s"Input file is ${inputFileName}")
-    log.debug(s"Compute embeddings is ${computeEmbeddings}")
-    log.debug(s"Number of embedding epochs is ${epochsForEmbeddings}")
+    log.debug(s"Resource folder is $resourceFolder")
+    log.debug(s"Input file is $inputFileName")
+    log.debug(s"Compute embeddings is $computeEmbeddings")
+    log.debug(s"Number of embedding epochs is $epochsForEmbeddings")
 
     //Print out the schema:
     log.info("Input data schema details:")
@@ -276,7 +276,7 @@ object ParagraphVector extends SparkOps {
     log.info("Embedded Vectors OK ....")
 
     val height = architecture match {
-      case "cnn" => 25
+      case "cnn" => 5
       case "rnn" => 1
       case "deep" => 1
     }
@@ -326,18 +326,18 @@ object ParagraphVector extends SparkOps {
         .weightInit(WeightInit.XAVIER).optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
         .updater(Updater.NESTEROVS).momentum(0.9)
         .list
-        .layer(0, new ConvolutionLayer.Builder(5, 1).name("conv1")
+        .layer(0, new ConvolutionLayer.Builder(2, 1).name("conv1")
           // nIn is the number of channels, nOut is the number of filters to be applied
           .nIn(1).stride(1, 1).nOut(20)
           .activation("identity").build())
-        //.layer(1, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.AVG).name("pooling_1")
-        //  .kernelSize(3, 1).stride(3, 1).build())
+        .layer(1, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.AVG).name("pooling_1")
+          .kernelSize(2, 1).stride(2, 1).build())
         //     .layer(2, new ConvolutionLayer.Builder(1, 1).name("conv2")
         //       .stride(1, 1).nOut(height).activation("identity").build())
         //     .layer(3, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.AVG).name("pooling_2")
         //       .kernelSize(1, 1).stride(1, 1).build())
-        .layer(1, new DenseLayer.Builder().activation("relu").nOut(500).build())
-        .layer(2, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).nOut(outputNum).activation("softmax").build())
+        .layer(2, new DenseLayer.Builder().activation("relu").nOut(500).build())
+        .layer(3, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).nOut(outputNum).activation("softmax").build())
         // height, width, height
         .setInputType(InputType.convolutionalFlat(height, featureSpaceSize / height, 1))
         .backprop(true).pretrain(false).build()).toOption
@@ -400,7 +400,7 @@ object ParagraphVector extends SparkOps {
         .layer(1, new OutputLayer.Builder(LossFunctions.LossFunction.MSE).activation("softmax").nIn(500).nOut(outputNum).build)
         .pretrain(true).backprop(true).build).toOption
 
-      log.info(s"Architecture ${architecture}")
+      log.info(s"Architecture $architecture")
       val active_conf = architecture match {
         case "cnn" => cnn_conf.get
         case "rnn" => rnn_conf.get
@@ -418,7 +418,7 @@ object ParagraphVector extends SparkOps {
     } else {
 
       //Load the model
-      val locationToSave = new File(s"${sourceModel}")
+      val locationToSave = new File(s"$sourceModel")
       val restored = ModelSerializer.restoreMultiLayerNetwork(locationToSave)
       restored.init()
 
