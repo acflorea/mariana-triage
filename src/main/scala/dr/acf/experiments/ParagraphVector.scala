@@ -30,6 +30,7 @@ import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.deeplearning4j.nn.weights.WeightInit
 import org.deeplearning4j.optimize.api.IterationListener
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener
+import org.deeplearning4j.spark.api.RDDTrainingApproach
 import org.deeplearning4j.spark.impl.multilayer.SparkDl4jMultiLayer
 import org.deeplearning4j.spark.impl.paramavg.ParameterAveragingTrainingMaster
 import org.deeplearning4j.text.sentenceiterator.CollectionSentenceIterator
@@ -100,6 +101,10 @@ object ParagraphVector extends SparkOps {
     // Initial epoch value
     val startEpoch = conf.getInt("global.startEpoch")
 
+    // Batch Size
+    val batchSize = if (conf.hasPath("global.batchSize")) conf.getInt("global.batchSize") else 25
+    // Averaging Frequency
+    val averagingFrequency = if (conf.hasPath("global.averagingFrequency")) conf.getInt("global.averagingFrequency") else 5
 
     lazy val modelName = if (epochsForEmbeddings < 10)
       s"${model}_0$epochsForEmbeddings.model"
@@ -113,6 +118,9 @@ object ParagraphVector extends SparkOps {
     log.debug(s"Input file is $inputFileName")
     log.debug(s"Compute embeddings is $computeEmbeddings")
     log.debug(s"Number of embedding epochs is $epochsForEmbeddings")
+
+    log.debug(s"Batch Size is $batchSize")
+    log.debug(s"Averaging Frequency is $averagingFrequency")
 
     //Print out the schema:
     log.info("Input data schema details:")
@@ -303,9 +311,6 @@ object ParagraphVector extends SparkOps {
 
     val featureSpaceSize = height * (paragraphVectors.getLayerSize + components.size() + products.size() + severityValues.size())
 
-    val batchSize = 25
-    val averagingFrequency = 5
-
     val outputNum = possibleLabels
     val iterations = 500
 
@@ -448,10 +453,11 @@ object ParagraphVector extends SparkOps {
     val numEpochs = 2500
 
     //Perform evaluation (distributed)
-    val testData = sc.parallelize(testIterator.toList).cache()
-    val trainingData = sc.parallelize(trainIterator.toList).cache()
+    val testData = sc.parallelize(testIterator.toList)
+    val trainingData = sc.parallelize(trainIterator.toList)
 
     val tm = new ParameterAveragingTrainingMaster.Builder(trainBatchSize)
+      .rddTrainingApproach(RDDTrainingApproach.Direct)
       .averagingFrequency(averagingFrequency)
       .workerPrefetchNumBatches(2)
       .batchSizePerWorker(batchSize)
@@ -459,8 +465,9 @@ object ParagraphVector extends SparkOps {
 
     val networkListeners = new util.ArrayList[IterationListener]()
     networkListeners.add(new ScoreIterationListener(iterations / 5))
+    tm.setListeners(networkListeners)
+
     val sparkNet = new SparkDl4jMultiLayer(sc, net, tm)
-    sparkNet.setListeners(networkListeners)
 
     log.info(s"Start training!!!")
 
