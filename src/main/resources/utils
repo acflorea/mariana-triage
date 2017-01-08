@@ -11,3 +11,5 @@
 --executor-memory 20G \
 --driver-java-options "-Xmx32G -Dconfig.file=/opt/mariana-triage/code/application.conf" \
 /opt/mariana-triage/code//mariana-triage-assembly-1.2.jar
+
+nohup ~/ibm/spark-dk-1.6.3.0/spark/bin/spark-submit --class dr.acf.experiments.ParagraphVector --master=local[20] --executor-memory 30G --driver-memory 30G --driver-java-options "-Xmx64G -Dconfig.file=./application.conf" /opt/mariana-triage/code/mariana-triage-assembly-1.2.2.jar >./triage.out 2>./triage.err &
