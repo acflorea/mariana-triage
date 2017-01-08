@@ -1,6 +1,7 @@
 package dr.acf.experiments
 
 import java.io.File
+import java.text.DecimalFormat
 import java.util
 import java.util.TimeZone
 
@@ -463,21 +464,22 @@ object ParagraphVector extends SparkOps {
 
     log.info(s"Start training!!!")
 
+    log.info("Epoch," +
+      "Accuracy_Train,Precision_Train,Recall_Train,F1Score_Train,WPrecision_Train,WRecall_Train,WF1Score_Train," +
+      "Accuracy_Test,Precision_Test,Recall_Test,F1Score_Test,WPrecision_Test,WRecall_Test,WF1Score_Test")
+
+    val df: DecimalFormat = new DecimalFormat("0000")
 
     (startEpoch to numEpochs) foreach { i =>
       sparkNet.fit(trainingData)
-      log.info(s"Completed Epoch $i")
 
       val locationToSave = new File(s"${architecture}_${inputFileName}_$i.zip")
       ModelSerializer.writeModel(net, locationToSave, saveUpdater)
 
       val evaluationTrain: SmartEvaluation = new SmartEvaluation(sparkNet.evaluate(trainingData))
-      log.info("***** Evaluation TRAIN DATA *****")
-      log.info(evaluationTrain.stats(false, false))
-
       val evaluationTest: SmartEvaluation = new SmartEvaluation(sparkNet.evaluate(testData))
-      log.info("***** Evaluation TEST DATA *****")
-      log.info(evaluationTest.stats(false, false))
+
+      log.info(s"${df.format(i)},${evaluationTrain.csvStats},${evaluationTest.csvStats}")
     }
 
     //Delete the temp training files, now that we are done with them

@@ -64,6 +64,32 @@ class SmartEvaluation(eval: Evaluation) {
     builder.toString
   }
 
+  /**
+    * Method to obtain the classification report as a String
+    *
+    * @return A Comma separated String with accuracy, precision, recall, f1 score etc
+    */
+  def csvStats: String = {
+    val builder: StringBuilder = new StringBuilder()
+
+    val df: DecimalFormat = new DecimalFormat("0.0000")
+    val acc: Double = eval.accuracy
+    val prec: Double = eval.precision
+    val rec: Double = eval.recall
+    val f1: Double = eval.f1
+    val wprec: Double = wprecision
+    val wrec: Double = wrecall
+    val _wf1: Double = wf1
+
+    builder.append(format(df, acc))
+    builder.append(",").append(format(df, prec))
+    builder.append(",").append(format(df, rec))
+    builder.append(",").append(format(df, f1))
+    builder.append(",").append(format(df, wprec))
+    builder.append(",").append(format(df, wrec))
+    builder.append(",").append(format(df, _wf1))
+    builder.toString
+  }
 
   private def format(f: DecimalFormat, num: Double): String = {
     if (lang.Double.isNaN(num) || lang.Double.isInfinite(num)) return String.valueOf(num)
