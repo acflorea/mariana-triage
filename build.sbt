@@ -52,6 +52,12 @@ val assemblyDependencies = (scope: String) => Seq(
     exclude("com.fasterxml.jackson.core", "jackson-core")
     exclude("com.fasterxml.jackson.core", "jackson-databind")
     exclude("com.fasterxml.jackson.dataformat", "jackson-dataformat-yaml"),
+  sparkExcludes("org.deeplearning4j" % "deeplearning4j-ui-model" % dl4jVersion % scope)
+    exclude("org.apache.spark", "*")
+    exclude("com.fasterxml.jackson.core", "jackson-annotations")
+    exclude("com.fasterxml.jackson.core", "jackson-core")
+    exclude("com.fasterxml.jackson.core", "jackson-databind")
+    exclude("com.fasterxml.jackson.dataformat", "jackson-dataformat-yaml"),
   sparkExcludes("org.nd4j" %% "nd4j-kryo" % nd4jVersion % scope)
     exclude("com.esotericsoftware.kryo", "kryo"),
   sparkExcludes("org.nd4j" %% "nd4s" % nd4jVersion % scope),
@@ -62,7 +68,8 @@ val assemblyDependencies = (scope: String) => Seq(
   "com.fasterxml.jackson.core" % "jackson-core" % "2.4.4" % scope,
   "com.fasterxml.jackson.core" % "jackson-databind" % "2.4.4" % scope,
   "com.fasterxml.jackson.dataformat" % "jackson-dataformat-yaml" % "2.4.4" % scope,
-  "com.typesafe" % "config" % "1.2.1" % scope
+  "com.typesafe" % "config" % "1.2.1" % scope,
+  "commons-net" % "commons-net" % "3.5" % scope
 )
 
 libraryDependencies ++= Seq(

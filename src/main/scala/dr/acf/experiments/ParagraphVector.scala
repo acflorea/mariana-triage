@@ -3,7 +3,7 @@ package dr.acf.experiments
 import java.io.File
 import java.text.DecimalFormat
 import java.util
-import java.util.TimeZone
+import java.util.{Collections, TimeZone}
 
 import dr.acf.utils.{SmartEvaluation, SparkOps, WordVectorSmartSerializer}
 import org.apache.spark.broadcast.Broadcast
@@ -16,6 +16,7 @@ import org.datavec.api.transform.schema.Schema
 import org.datavec.api.writable.{DoubleWritable, Writable}
 import org.datavec.spark.transform.SparkTransformExecutor
 import org.datavec.spark.transform.misc.StringToWritablesFunction
+import org.deeplearning4j.api.storage.StatsStorage
 import org.deeplearning4j.datasets.datavec.RecordReaderDataSetIterator
 import org.deeplearning4j.models.paragraphvectors.ParagraphVectors
 import org.deeplearning4j.models.sequencevectors.SequenceVectors
@@ -36,6 +37,8 @@ import org.deeplearning4j.spark.impl.paramavg.ParameterAveragingTrainingMaster
 import org.deeplearning4j.text.sentenceiterator.CollectionSentenceIterator
 import org.deeplearning4j.text.tokenization.tokenizer.preprocessor.CommonPreprocessor
 import org.deeplearning4j.text.tokenization.tokenizerfactory.DefaultTokenizerFactory
+import org.deeplearning4j.ui.stats.StatsListener
+import org.deeplearning4j.ui.storage.FileStatsStorage
 import org.deeplearning4j.util.ModelSerializer
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator
 import org.nd4j.linalg.lossfunctions.LossFunctions
@@ -465,9 +468,12 @@ object ParagraphVector extends SparkOps {
 
     val networkListeners = new util.ArrayList[IterationListener]()
     networkListeners.add(new ScoreIterationListener(iterations / 5))
-    tm.setListeners(networkListeners)
 
     val sparkNet = new SparkDl4jMultiLayer(sc, net, tm)
+    sparkNet.setCollectTrainingStats(true)
+
+    def statsStorage = new FileStatsStorage(new File("trainingStats.dl4j"));
+    sparkNet.setListeners(statsStorage, networkListeners);
 
     log.info(s"Start training!!!")
 
