@@ -458,7 +458,7 @@ object ParagraphVector extends SparkOps {
     val trainingData = sc.parallelize(trainIterator.toList)
 
     val tm = new ParameterAveragingTrainingMaster.Builder(trainBatchSize)
-      .rddTrainingApproach(RDDTrainingApproach.Direct)
+      .rddTrainingApproach(RDDTrainingApproach.Export)
       .averagingFrequency(averagingFrequency)
       .workerPrefetchNumBatches(2)
       .batchSizePerWorker(batchSize)
