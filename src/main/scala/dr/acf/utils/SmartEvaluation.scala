@@ -51,7 +51,7 @@ class SmartEvaluation(eval: Evaluation) {
     val f1: Double = eval.f1
     val wprec: Double = wprecision
     val wrec: Double = wrecall
-    val _wf1: Double = wf1
+    val _wf1: Double = if (wprec == 0 || wrec == 0) 0 else 2 * wprec * wrec / (wprec + wrec)
     builder.append("\n==========================Scores========================================")
     builder.append("\n Accuracy:  ").append(format(df, acc))
     builder.append("\n Precision: ").append(format(df, prec))
@@ -79,7 +79,7 @@ class SmartEvaluation(eval: Evaluation) {
     val f1: Double = eval.f1
     val wprec: Double = wprecision
     val wrec: Double = wrecall
-    val _wf1: Double = wf1
+    val _wf1: Double = if (wprec == 0 || wrec == 0) 0 else 2 * wprec * wrec / (wprec + wrec)
 
     builder.append(format(df, acc))
     builder.append(",").append(format(df, prec))
@@ -130,22 +130,5 @@ class SmartEvaluation(eval: Evaluation) {
     recallAcc / classCount.toDouble
   }
 
-  /**
-    * TP: true positive
-    * FP: False Positive
-    * FN: False Negative
-    * F1 score: 2 * TP / (2TP + FP + FN)
-    *
-    * @return the f1 score or harmonic mean based on current guesses
-    */
-  def wf1: Double = {
-    var f1Acc: Double = 0.0
-    var classCount: Int = 0
-    eval.getConfusionMatrix.getClasses.asScala foreach { classLabel =>
-      f1Acc += eval.f1(classLabel) * eval.classCount(classLabel)
-      classCount += eval.classCount(classLabel)
-    }
-    f1Acc / classCount.toDouble
-  }
 
 }
