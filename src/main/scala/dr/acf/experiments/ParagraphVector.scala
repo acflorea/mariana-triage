@@ -1,6 +1,7 @@
 package dr.acf.experiments
 
 import java.io.File
+import java.nio.file.{Files, Paths}
 import java.text.DecimalFormat
 import java.util
 import java.util.TimeZone
@@ -102,6 +103,10 @@ object ParagraphVector extends SparkOps {
     // Initial epoch value
     val startEpoch = conf.getInt("global.startEpoch")
 
+    // Data location
+    val dataLocation = s"${resourceFolder}data_${architecture}"
+    val dataAlreadySaved = Files.exists(Paths.get(dataLocation))
+
     //Execute training:
     val numEpochs = if (conf.hasPath("global.numEpochs")) conf.getInt("global.numEpochs") else 100
 
@@ -126,196 +131,203 @@ object ParagraphVector extends SparkOps {
     log.debug(s"Batch Size is $batchSize")
     log.debug(s"Averaging Frequency is $averagingFrequency")
 
-    //Print out the schema:
-    log.info("Input data schema details:")
-    log.info(s"$inputDataSchema")
-
-    log.info("\n\nOther information obtainable from schema:")
-    log.info(s"Number of columns: ${inputDataSchema.numColumns}")
-    log.info(s"Column names: ${inputDataSchema.getColumnNames}")
-    log.info(s"Column types: ${inputDataSchema.getColumnTypes}")
-
-    //=====================================================================
-    //            Step 2.a: Define the operations we want to do
-    //=====================================================================
-    val filterColumnsTransform: TransformProcess = new TransformProcess.Builder(inputDataSchema)
-      //Let's remove some column we don't need
-      //  .filter(new ConditionFilter(new IntegerColumnCondition("class", ConditionOp.GreaterOrEqual, 20)))
-      //  .filter(new ConditionFilter(new IntegerColumnCondition("component_id", ConditionOp.NotEqual, 128)))
-      .removeAllColumnsExceptFor("text", "bug_severity", "component_id", "product_id", "class")
-      .reorderColumns("text", "bug_severity", "component_id", "product_id", "class")
-      //.removeAllColumnsExceptFor("text", "class")
-      //.reorderColumns("text", "class")
-      .build()
-
-    // After executing all of these operations, we have a new and different schema:
-    val outputSchema: Schema = filterColumnsTransform.getFinalSchema
-
-    log.info("\n\n\nSchema after transforming data:")
-    log.info(s"$outputSchema")
-
-    //=====================================================================
-    //            Step 2.b: Transform
-    //=====================================================================
-    val directory: String = resourceFolder + inputFileName
-    val stringData: RDD[String] = sc.textFile(s"file:$directory")
-
-    //We first need to parse this format. It's comma-delimited (CSV) format, so let's parse it using CSVRecordReader:
-    val rr: RecordReader = new CSVRecordReader(0, CSVRecordReader.DEFAULT_DELIMITER)
-    val parsedInputData: RDD[util.List[Writable]] = stringData.map(new StringToWritablesFunction(rr).call(_))
-
-    //Now, let's execute the transforms we defined earlier:
-    val filteredData: RDD[util.List[Writable]] = SparkTransformExecutor.execute(parsedInputData, filterColumnsTransform)
-
-    val components: java.util.Map[java.lang.Integer, java.lang.String] =
-      new java.util.HashMap[java.lang.Integer, java.lang.String]()
-
-    val products: java.util.Map[java.lang.Integer, java.lang.String] =
-      new java.util.HashMap[java.lang.Integer, java.lang.String]()
-
-    val classes: java.util.Map[java.lang.Integer, java.lang.String] =
-      new java.util.concurrent.ConcurrentHashMap[java.lang.Integer, java.lang.String]()
-    val distinctClasses = mutable.Set.empty[Int]
-
-    val descs = filteredData.collect().map {
-      writables =>
-        if (Try(writables.get(2).toInt).isSuccess) components.put(writables.get(2).toInt, writables.get(2).toString)
-        if (Try(writables.get(3).toInt).isSuccess) products.put(writables.get(3).toInt, writables.get(3).toString)
-        if (Try(writables.last.toInt).isSuccess) distinctClasses += writables.last.toInt
-        writables.get(0).toString
-    }
-
-    distinctClasses.zipWithIndex foreach { classWithIndex =>
-      classes.put(classWithIndex._1, classWithIndex._2.toString)
-    }
-
-    //=====================================================================
-    //            Step 3.a: More transformations
-    //=====================================================================
-    val numericToCategoricalTransform: TransformProcess = new TransformProcess.Builder(filteredDataSchema)
-      .integerToCategorical("component_id", components)
-      .integerToCategorical("product_id", products)
-      .categoricalToOneHot("bug_severity")
-      .categoricalToOneHot("component_id")
-      .categoricalToOneHot("product_id")
-      .integerToCategorical("class", classes)
-      .build()
-
-    //=====================================================================
-    //            Step 3.b: Transform
-    //=====================================================================
-    //Now, let's execute the transforms we defined earlier:
-    val transformedData: RDD[util.List[Writable]] = SparkTransformExecutor.execute(filteredData, numericToCategoricalTransform)
-
-    val possibleLabels: Int = classes.size()
-
-    //=====================================================================
-    //            PARAGRAPH VECTOR !!!
-    //=====================================================================
-
-    // build a iterator for our dataset
-    val ptvIterator = new CollectionSentenceIterator(descs.flatMap(_.split("\\. ")).toList)
-    val prvRDD = sc.parallelize(descs.flatMap(_.split("\\. ")).toList)
-
-    //
-    val tokenizerFactory = new DefaultTokenizerFactory
-    tokenizerFactory.setTokenPreProcessor(new CommonPreprocessor)
-
-    val paragraphVectors = if (computeEmbeddings) {
-
-      // Lister to store model at each phase
-      val vectorListener = new VectorsListener[VocabWord] {
-        override def processEvent(event: ListenerEvent, sequenceVectors: SequenceVectors[VocabWord], argument: Long): Unit = {
-          event match {
-            case ListenerEvent.EPOCH if argument % 10 == 0 =>
-              log.info("Save vectors....")
-              lazy val _modelName = if (argument < 10)
-                s"${model}_0$argument.model"
-              else
-                s"${model}_$argument.model"
-              WordVectorSmartSerializer
-                .writeParagraphVectors(sequenceVectors.asInstanceOf[ParagraphVectors], resourceFolder + modelName)
-            case _ =>
-          }
-        }
-
-        override def validateEvent(event: ListenerEvent, argument: Long): Boolean = true
-      }
-
-      val listeners = new util.ArrayList[VectorsListener[VocabWord]]()
-      listeners.add(vectorListener)
-
-      log.info("Build Embedded Vectors ....")
-
-      // ParagraphVectors training configuration
-      val _paragraphVectors = if (sourceModel != "") {
-        // start with initial vactors
-        log.info("Load Initial Vectors ....")
-        val _initialPV = WordVectorSmartSerializer.readParagraphVectors(new File(resourceFolder + sourceModel))
-        new ParagraphVectors.Builder()
-          .useExistingWordVectors(_initialPV)
-          .setVectorsListeners(listeners)
-          .layerSize(100)
-          .learningRate(0.025).minLearningRate(0.001)
-          .batchSize(2500).epochs(epochsForEmbeddings)
-          .iterate(ptvIterator).trainWordVectors(true)
-          .tokenizerFactory(tokenizerFactory).build
-      } else {
-        new ParagraphVectors.Builder()
-          .setVectorsListeners(listeners)
-          .layerSize(100)
-          .learningRate(0.025).minLearningRate(0.001)
-          .batchSize(2500).epochs(epochsForEmbeddings)
-          .iterate(ptvIterator).trainWordVectors(true)
-          .tokenizerFactory(tokenizerFactory).build
-      }
-
-      // Start model training
-      _paragraphVectors.fit()
-
-      log.info("Save vectors....")
-      WordVectorSmartSerializer.writeParagraphVectors(_paragraphVectors, resourceFolder + modelName)
-      _paragraphVectors
-
-    } else {
-
-      log.info("Load Embedded Vectors ....")
-      val _paragraphVectors = WordVectorSmartSerializer.readParagraphVectors(new File(resourceFolder + modelName))
-      _paragraphVectors.setTokenizerFactory(tokenizerFactory)
-      _paragraphVectors
-
-    }
-
-    log.info("Embedded Vectors OK ....")
-
     val height = architecture match {
       case "cnn" => 5
       case "rnn" => 1
       case "deep" => 1
     }
 
-    log.info("Apply Paragraph2Vec ....")
+    val data = if (dataAlreadySaved) {
 
-    val broadcastPV = true
-    val data =
-      if (broadcastPV) {
-        val pv = sc.broadcast(paragraphVectors)
+      log.info("Load existing data")
+      val dataRDD = sc.objectFile[util.List[Writable]](dataLocation)
+      dataRDD.collect().toList
+
+    } else {
+
+      //Print out the schema:
+      log.info("Input data schema details:")
+      log.info(s"$inputDataSchema")
+
+      log.info("\n\nOther information obtainable from schema:")
+      log.info(s"Number of columns: ${inputDataSchema.numColumns}")
+      log.info(s"Column names: ${inputDataSchema.getColumnNames}")
+      log.info(s"Column types: ${inputDataSchema.getColumnTypes}")
+
+      //=====================================================================
+      //            Step 2.a: Define the operations we want to do
+      //=====================================================================
+      val filterColumnsTransform: TransformProcess = new TransformProcess.Builder(inputDataSchema)
+        //Let's remove some column we don't need
+        //  .filter(new ConditionFilter(new IntegerColumnCondition("class", ConditionOp.GreaterOrEqual, 20)))
+        //  .filter(new ConditionFilter(new IntegerColumnCondition("component_id", ConditionOp.NotEqual, 128)))
+        .removeAllColumnsExceptFor("text", "bug_severity", "component_id", "product_id", "class")
+        .reorderColumns("text", "bug_severity", "component_id", "product_id", "class")
+        //.removeAllColumnsExceptFor("text", "class")
+        //.reorderColumns("text", "class")
+        .build()
+
+      // After executing all of these operations, we have a new and different schema:
+      val outputSchema: Schema = filterColumnsTransform.getFinalSchema
+
+      log.info("\n\n\nSchema after transforming data:")
+      log.info(s"$outputSchema")
+
+      //=====================================================================
+      //            Step 2.b: Transform
+      //=====================================================================
+      val directory: String = resourceFolder + inputFileName
+      val stringData: RDD[String] = sc.textFile(s"file:$directory")
+
+      //We first need to parse this format. It's comma-delimited (CSV) format, so let's parse it using CSVRecordReader:
+      val rr: RecordReader = new CSVRecordReader(0, CSVRecordReader.DEFAULT_DELIMITER)
+      val parsedInputData: RDD[util.List[Writable]] = stringData.map(new StringToWritablesFunction(rr).call(_))
+
+      //Now, let's execute the transforms we defined earlier:
+      val filteredData: RDD[util.List[Writable]] = SparkTransformExecutor.execute(parsedInputData, filterColumnsTransform)
+
+      val components: java.util.Map[java.lang.Integer, java.lang.String] =
+        new java.util.HashMap[java.lang.Integer, java.lang.String]()
+
+      val products: java.util.Map[java.lang.Integer, java.lang.String] =
+        new java.util.HashMap[java.lang.Integer, java.lang.String]()
+
+      val classes: java.util.Map[java.lang.Integer, java.lang.String] =
+        new java.util.concurrent.ConcurrentHashMap[java.lang.Integer, java.lang.String]()
+      val distinctClasses = mutable.Set.empty[Int]
+
+      val descs = filteredData.collect().map {
+        writables =>
+          if (Try(writables.get(2).toInt).isSuccess) components.put(writables.get(2).toInt, writables.get(2).toString)
+          if (Try(writables.get(3).toInt).isSuccess) products.put(writables.get(3).toInt, writables.get(3).toString)
+          if (Try(writables.last.toInt).isSuccess) distinctClasses += writables.last.toInt
+          writables.get(0).toString
+      }
+
+      distinctClasses.zipWithIndex foreach { classWithIndex =>
+        classes.put(classWithIndex._1, classWithIndex._2.toString)
+      }
+
+      //=====================================================================
+      //            Step 3.a: More transformations
+      //=====================================================================
+      val numericToCategoricalTransform: TransformProcess = new TransformProcess.Builder(filteredDataSchema)
+        .integerToCategorical("component_id", components)
+        .integerToCategorical("product_id", products)
+        .categoricalToOneHot("bug_severity")
+        .categoricalToOneHot("component_id")
+        .categoricalToOneHot("product_id")
+        .integerToCategorical("class", classes)
+        .build()
+
+      //=====================================================================
+      //            Step 3.b: Transform
+      //=====================================================================
+      //Now, let's execute the transforms we defined earlier:
+      val transformedData: RDD[util.List[Writable]] = SparkTransformExecutor.execute(filteredData, numericToCategoricalTransform)
+
+      //=====================================================================
+      //            PARAGRAPH VECTOR !!!
+      //=====================================================================
+
+      // build a iterator for our dataset
+      val ptvIterator = new CollectionSentenceIterator(descs.flatMap(_.split("\\. ")).toList)
+      val prvRDD = sc.parallelize(descs.flatMap(_.split("\\. ")).toList)
+
+      //
+      val tokenizerFactory = new DefaultTokenizerFactory
+      tokenizerFactory.setTokenPreProcessor(new CommonPreprocessor)
+
+      val paragraphVectors = if (computeEmbeddings) {
+
+        // Lister to store model at each phase
+        val vectorListener = new VectorsListener[VocabWord] {
+          override def processEvent(event: ListenerEvent, sequenceVectors: SequenceVectors[VocabWord], argument: Long): Unit = {
+            event match {
+              case ListenerEvent.EPOCH if argument % 10 == 0 =>
+                log.info("Save vectors....")
+                lazy val _modelName = if (argument < 10)
+                  s"${model}_0$argument.model"
+                else
+                  s"${model}_$argument.model"
+                WordVectorSmartSerializer
+                  .writeParagraphVectors(sequenceVectors.asInstanceOf[ParagraphVectors], resourceFolder + modelName)
+              case _ =>
+            }
+          }
+
+          override def validateEvent(event: ListenerEvent, argument: Long): Boolean = true
+        }
+
+        val listeners = new util.ArrayList[VectorsListener[VocabWord]]()
+        listeners.add(vectorListener)
+
+        log.info("Build Embedded Vectors ....")
+
+        // ParagraphVectors training configuration
+        val _paragraphVectors = if (sourceModel != "") {
+          // start with initial vactors
+          log.info("Load Initial Vectors ....")
+          val _initialPV = WordVectorSmartSerializer.readParagraphVectors(new File(resourceFolder + sourceModel))
+          new ParagraphVectors.Builder()
+            .useExistingWordVectors(_initialPV)
+            .setVectorsListeners(listeners)
+            .layerSize(100)
+            .learningRate(0.025).minLearningRate(0.001)
+            .batchSize(2500).epochs(epochsForEmbeddings)
+            .iterate(ptvIterator).trainWordVectors(true)
+            .tokenizerFactory(tokenizerFactory).build
+        } else {
+          new ParagraphVectors.Builder()
+            .setVectorsListeners(listeners)
+            .layerSize(100)
+            .learningRate(0.025).minLearningRate(0.001)
+            .batchSize(2500).epochs(epochsForEmbeddings)
+            .iterate(ptvIterator).trainWordVectors(true)
+            .tokenizerFactory(tokenizerFactory).build
+        }
+
+        // Start model training
+        _paragraphVectors.fit()
+
+        log.info("Save vectors....")
+        WordVectorSmartSerializer.writeParagraphVectors(_paragraphVectors, resourceFolder + modelName)
+        _paragraphVectors
+
+      } else {
+
+        log.info("Load Embedded Vectors ....")
+        val _paragraphVectors = WordVectorSmartSerializer.readParagraphVectors(new File(resourceFolder + modelName))
+        _paragraphVectors.setTokenizerFactory(tokenizerFactory)
+        _paragraphVectors
+
+      }
+
+      log.info("Embedded Vectors OK ....")
+
+      log.info("Apply Paragraph2Vec ....")
+
+      val pv = sc.broadcast(paragraphVectors)
+
+      val dataRDD =
         transformedData.repartition(sc.defaultParallelism).mapPartitions { it =>
           it.zipWithIndex.collect { case rowWithIndex if rowWithIndex._1.head.toString.nonEmpty =>
             addWord2VecPartitions(pv, height, rowWithIndex)
           }
-        }.collect().toList
-      } else {
-        transformedData.collect().zipWithIndex.toList.collect { case rowWithIndex if rowWithIndex._1.head.toString.nonEmpty =>
-          addWord2Vec(paragraphVectors, height, rowWithIndex)
         }
-      }
+
+      dataRDD.saveAsObjectFile(dataLocation)
+      dataRDD.collect().toList
+
+    }
 
     val seed = 12345
 
-    val featureSpaceSize = height * (paragraphVectors.getLayerSize + components.size() + products.size() + severityValues.size())
+    val featureSpaceSize = data.last.size - 1
 
+    val possibleLabels = data.map(_.last).distinct.size
     val outputNum = possibleLabels
+
     val iterations = 500
 
     val layer1width = 250
@@ -329,6 +341,7 @@ object ParagraphVector extends SparkOps {
       log.info("Build model....")
       log.info(s"Number of iterations $iterations")
       log.info(s"Number of features $featureSpaceSize")
+      log.info(s"Number of labels $possibleLabels")
 
       val cnn_conf: Option[MultiLayerConfiguration] = Try(new NeuralNetConfiguration.Builder()
         .seed(seed)
@@ -438,6 +451,9 @@ object ParagraphVector extends SparkOps {
     }
 
     val (_trainingData, _testData) = data.splitAt(9 * data.size / 10)
+
+    log.info(s"Training data size ${_trainingData.size}")
+    log.info(s"Test data size ${_testData.size}")
 
     val trainBatchSize = _trainingData.size / sc.defaultParallelism / 15
 
