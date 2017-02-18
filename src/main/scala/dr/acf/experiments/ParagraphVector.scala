@@ -65,6 +65,7 @@ object ParagraphVector extends SparkOps {
     .addColumnInteger("bug_id")
     .addColumnCategorical("bug_severity", severityValues)
     .addColumnCategorical("bug_status", statusValues)
+    .addColumnTime("bug_when", TimeZone.getDefault)
     .addColumnInteger("component_id")
     .addColumnTime("creation_ts", TimeZone.getDefault)
     .addColumnTime("delta_ts", TimeZone.getDefault)
@@ -75,6 +76,7 @@ object ParagraphVector extends SparkOps {
     .build()
 
   val filteredDataSchema: Schema = new Schema.Builder()
+    .addColumnInteger("bug_id")
     .addColumnsString("text")
     .addColumnCategorical("bug_severity", severityValues)
     .addColumnInteger("component_id")
@@ -104,7 +106,7 @@ object ParagraphVector extends SparkOps {
     val startEpoch = conf.getInt("global.startEpoch")
 
     // Data location
-    val dataLocation = s"${resourceFolder}data_${architecture}"
+    val dataLocation = s"./data_$architecture"
     val dataAlreadySaved = Files.exists(Paths.get(dataLocation))
 
     //Execute training:
@@ -161,8 +163,8 @@ object ParagraphVector extends SparkOps {
         //Let's remove some column we don't need
         //  .filter(new ConditionFilter(new IntegerColumnCondition("class", ConditionOp.GreaterOrEqual, 20)))
         //  .filter(new ConditionFilter(new IntegerColumnCondition("component_id", ConditionOp.NotEqual, 128)))
-        .removeAllColumnsExceptFor("text", "bug_severity", "component_id", "product_id", "class")
-        .reorderColumns("text", "bug_severity", "component_id", "product_id", "class")
+        .removeAllColumnsExceptFor("bug_id", "text", "bug_severity", "component_id", "product_id", "class")
+        .reorderColumns("bug_id", "text", "bug_severity", "component_id", "product_id", "class")
         //.removeAllColumnsExceptFor("text", "class")
         //.reorderColumns("text", "class")
         .build()
@@ -198,10 +200,10 @@ object ParagraphVector extends SparkOps {
 
       val descs = filteredData.collect().map {
         writables =>
-          if (Try(writables.get(2).toInt).isSuccess) components.put(writables.get(2).toInt, writables.get(2).toString)
-          if (Try(writables.get(3).toInt).isSuccess) products.put(writables.get(3).toInt, writables.get(3).toString)
+          if (Try(writables.get(3).toInt).isSuccess) components.put(writables.get(3).toInt, writables.get(3).toString)
+          if (Try(writables.get(4).toInt).isSuccess) products.put(writables.get(4).toInt, writables.get(4).toString)
           if (Try(writables.last.toInt).isSuccess) distinctClasses += writables.last.toInt
-          writables.get(0).toString
+          writables.get(1).toString
       }
 
       distinctClasses.zipWithIndex foreach { classWithIndex =>
@@ -311,7 +313,7 @@ object ParagraphVector extends SparkOps {
 
       val dataRDD =
         transformedData.repartition(sc.defaultParallelism).mapPartitions { it =>
-          it.zipWithIndex.collect { case rowWithIndex if rowWithIndex._1.head.toString.nonEmpty =>
+          it.zipWithIndex.collect { case rowWithIndex if rowWithIndex._1.drop(1).head.toString.nonEmpty =>
             addWord2VecPartitions(pv, height, rowWithIndex)
           }
         }
@@ -323,7 +325,7 @@ object ParagraphVector extends SparkOps {
 
     val seed = 12345
 
-    val featureSpaceSize = data.last.size - 1
+    val featureSpaceSize = data.last.size - 2
 
     val possibleLabels = data.map(_.last).distinct.size
     val outputNum = possibleLabels
@@ -450,7 +452,9 @@ object ParagraphVector extends SparkOps {
 
     }
 
-    val (_trainingData, _testData) = data.splitAt(9 * data.size / 10)
+    // sort by bugId and then drop it
+    import collection.JavaConverters._
+    val (_trainingData, _testData) = data.sortBy(_.get(0).toInt).map(_.drop(1).asJava).splitAt(9 * data.size / 10)
 
     log.info(s"Training data size ${_trainingData.size}")
     log.info(s"Test data size ${_testData.size}")
@@ -487,6 +491,7 @@ object ParagraphVector extends SparkOps {
     sparkNet.setCollectTrainingStats(true)
 
     def statsStorage = new FileStatsStorage(new File("trainingStats.dl4j"))
+
     sparkNet.setListeners(statsStorage, networkListeners)
 
     log.info(s"Start training!!!")
@@ -539,7 +544,7 @@ object ParagraphVector extends SparkOps {
     val index = rowWithIndex._2
     if (index % 100 == 0) log.debug(s"Processed $index rows.")
 
-    val desc = row.head.toString
+    val desc = row.drop(1).head.toString
     val words = desc.split("\\W+")
 
     val wordsPerGroup = 5
@@ -559,13 +564,13 @@ object ParagraphVector extends SparkOps {
 
       val vectors = groups map (slice =>
         Try(paragraphVectors.inferVector(slice.mkString(" ")).
-          data().asDouble().map(new DoubleWritable(_)) ++ row.drop(1).dropRight(1)).
+          data().asDouble().map(new DoubleWritable(_)) ++ row.drop(2).dropRight(1)).
           getOrElse(placeholder)
         )
-      seqAsJavaList(vectors.reduce(_ ++ _) ++ Seq(row.last))
+      seqAsJavaList(row.take(1) ++ vectors.reduce(_ ++ _) ++ Seq(row.last))
     } else {
       val vectors = (0 until height) map (index => placeholder)
-      seqAsJavaList(vectors.reduce(_ ++ _) ++ Seq(row.last))
+      seqAsJavaList(row.take(1) ++ vectors.reduce(_ ++ _) ++ Seq(row.last))
     }
   }
 }
