@@ -549,7 +549,7 @@ object ParagraphVector extends SparkOps {
 
     val wordsPerGroup = 5
 
-    val placeholder = Array.fill[DoubleWritable](paragraphVectors.getLayerSize)(new DoubleWritable(0)) ++ row.drop(1).dropRight(1)
+    val placeholder = Array.fill[DoubleWritable](paragraphVectors.getLayerSize)(new DoubleWritable(0)) ++ row.drop(2).dropRight(1)
 
     if (words.nonEmpty) {
       val groups = if (words.length < wordsPerGroup * height) {
