@@ -1,19 +1,17 @@
 package dr.acf.experiments
 
-import java.io.File
+import java.io.{File, IOException}
 import java.text.DecimalFormat
 import java.util
 
 import dr.acf.utils.{SmartEvaluation, SparkOps}
-import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
 import org.datavec.api.records.reader.RecordReader
-import org.datavec.api.records.reader.impl.collection.CollectionRecordReader
 import org.datavec.api.records.reader.impl.csv.CSVRecordReader
-import org.datavec.api.writable.{DoubleWritable, Writable}
+import org.datavec.api.split.FileSplit
+import org.datavec.api.writable.Writable
 import org.datavec.spark.transform.misc.StringToWritablesFunction
 import org.deeplearning4j.datasets.datavec.RecordReaderDataSetIterator
-import org.deeplearning4j.models.paragraphvectors.ParagraphVectors
 import org.deeplearning4j.nn.api.OptimizationAlgorithm
 import org.deeplearning4j.nn.conf._
 import org.deeplearning4j.nn.conf.inputs.InputType
@@ -27,7 +25,6 @@ import org.deeplearning4j.spark.impl.multilayer.SparkDl4jMultiLayer
 import org.deeplearning4j.spark.impl.paramavg.ParameterAveragingTrainingMaster
 import org.deeplearning4j.ui.storage.FileStatsStorage
 import org.deeplearning4j.util.ModelSerializer
-import org.nd4j.linalg.dataset.api.iterator.DataSetIterator
 import org.nd4j.linalg.lossfunctions.LossFunctions
 import org.slf4j
 import org.slf4j.LoggerFactory
@@ -83,21 +80,20 @@ object BagOfWords extends SparkOps {
 
     val trainDirectory: String = resourceFolder + trainFileName
     val testDirectory: String = resourceFolder + testFileName
+
     val trainStringData: RDD[String] = sc.textFile(s"file:$trainDirectory")
     val testStringData: RDD[String] = sc.textFile(s"file:$testDirectory")
+    val trainBatchSize = trainStringData.count().toInt / sc.defaultParallelism / 15
 
     //We first need to parse this format. It's comma-delimited (CSV) format, so let's parse it using CSVRecordReader:
     val train_rr: RecordReader = new CSVRecordReader(0, CSVRecordReader.DEFAULT_DELIMITER)
-    val test_rr: RecordReader = new CSVRecordReader(0, CSVRecordReader.DEFAULT_DELIMITER)
-
     val trainParsedInputData: RDD[util.List[Writable]] = trainStringData.map(new StringToWritablesFunction(train_rr).call(_))
-    val testParsedInputData: RDD[util.List[Writable]] = testStringData.map(new StringToWritablesFunction(test_rr).call(_))
+    val possibleLabels = trainParsedInputData.map(_.last).collect().toList.distinct.size
 
     val seed = 12345
 
     val featureSpaceSize = trainParsedInputData.take(1).last.size - 1
 
-    val possibleLabels = trainParsedInputData.map(_.last).collect().toList.distinct.size
     val outputNum = possibleLabels
 
     val iterations = 500
@@ -222,29 +218,16 @@ object BagOfWords extends SparkOps {
 
     }
 
-    val _trainData = trainParsedInputData.collect().toList
-    val _testData = testParsedInputData.collect().toList
+    val _trainData = CSVDatasetIterator(trainDirectory, trainBatchSize, featureSpaceSize, possibleLabels).toList
+    val _testData = CSVDatasetIterator(testDirectory, testStringData.count().toInt, featureSpaceSize, possibleLabels).toList
 
     log.info(s"Training data size ${_trainData.length}")
     log.info(s"Test data size ${_testData.length}")
 
-    val trainBatchSize = _trainData.length / sc.defaultParallelism / 15
-
-    // train data
-    val trainRecordReader = new CollectionRecordReader(_trainData)
-    val trainIterator: DataSetIterator =
-      new RecordReaderDataSetIterator(trainRecordReader, trainBatchSize, featureSpaceSize, possibleLabels)
-
-    // test data
-    val testRecordReader = new CollectionRecordReader(_testData)
-    val testIterator: DataSetIterator =
-      new RecordReaderDataSetIterator(testRecordReader, _testData.length, featureSpaceSize, possibleLabels)
-
     val saveUpdater = true
 
-    //Perform evaluation (distributed)
-    val testData = sc.parallelize(testIterator.toList)
-    val trainingData = sc.parallelize(trainIterator.toList)
+    val trainingData = sc.parallelize(_trainData)
+    val testData = sc.parallelize(_testData)
 
     val tm = new ParameterAveragingTrainingMaster.Builder(trainBatchSize)
       .rddTrainingApproach(RDDTrainingApproach.Export)
@@ -286,6 +269,26 @@ object BagOfWords extends SparkOps {
     //Delete the temp training files, now that we are done with them
     tm.deleteTempFiles(sc)
 
+  }
+
+  /**
+    * used for testing and training
+    *
+    * @param csvFileLocation
+    * @param batchSize
+    * @param labelIndex
+    * @param numClasses
+    * @return
+    * @throws IOException
+    * @throws InterruptedException
+    */
+  @throws[IOException]
+  @throws[InterruptedException]
+  private def CSVDatasetIterator(csvFileLocation: String, batchSize: Int, labelIndex: Int, numClasses: Int) = {
+    val rr = new CSVRecordReader
+    rr.initialize(new FileSplit(new File(csvFileLocation)))
+    val iterator = new RecordReaderDataSetIterator(rr, batchSize, labelIndex, numClasses)
+    iterator
   }
 
 }
