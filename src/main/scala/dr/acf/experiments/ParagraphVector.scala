@@ -446,7 +446,6 @@ object ParagraphVector extends SparkOps {
       //Load the model
       val locationToSave = new File(s"$sourceModel")
       val restored = ModelSerializer.restoreMultiLayerNetwork(locationToSave)
-      restored.init()
 
       restored
 
