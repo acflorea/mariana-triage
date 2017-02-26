@@ -110,7 +110,7 @@ object ParagraphVector extends SparkOps {
     val dataAlreadySaved = Files.exists(Paths.get(dataLocation))
 
     //Execute training:
-    val numEpochs = if (conf.hasPath("global.numEpochs")) conf.getInt("global.numEpochs") else 100
+    val numEpochs = if (conf.hasPath("global.numEpochs")) conf.getInt("global.numEpochs") else 1000
 
     // Batch Size
     val batchSize = if (conf.hasPath("global.batchSize")) conf.getInt("global.batchSize") else 25
@@ -330,7 +330,7 @@ object ParagraphVector extends SparkOps {
     val possibleLabels = data.map(_.last).distinct.size
     val outputNum = possibleLabels
 
-    val iterations = 500
+    val iterations = if (conf.hasPath("global.iterations")) conf.getInt("global.iterations") else 1
 
     val layer1width = 250
     val learningRate = 0.0018
@@ -458,7 +458,7 @@ object ParagraphVector extends SparkOps {
     log.info(s"Training data size ${_trainingData.size}")
     log.info(s"Test data size ${_testData.size}")
 
-    val trainBatchSize = _trainingData.size / sc.defaultParallelism / 15
+    val trainBatchSize = if (conf.hasPath("global.trainBatchSize")) conf.getInt("global.trainBatchSize") else 32
 
     // train data
     val trainRecordReader = new CollectionRecordReader(_trainingData)
@@ -501,16 +501,20 @@ object ParagraphVector extends SparkOps {
 
     val df: DecimalFormat = new DecimalFormat("0000")
 
+    val evaluationEpoch = if (conf.hasPath("global.evaluationEpoch")) conf.getInt("global.evaluationEpoch") else 10
+
     (startEpoch to numEpochs) foreach { i =>
       sparkNet.fit(trainingData)
 
-      val locationToSave = new File(s"${architecture}_${inputFileName}_$i.zip")
-      ModelSerializer.writeModel(net, locationToSave, saveUpdater)
+      if (i % evaluationEpoch == 0) {
+        val locationToSave = new File(s"${architecture}_${inputFileName}_$i.zip")
+        ModelSerializer.writeModel(net, locationToSave, saveUpdater)
 
-      val evaluationTrain: SmartEvaluation = new SmartEvaluation(sparkNet.evaluate(trainingData))
-      val evaluationTest: SmartEvaluation = new SmartEvaluation(sparkNet.evaluate(testData))
+        val evaluationTrain: SmartEvaluation = new SmartEvaluation(sparkNet.evaluate(trainingData))
+        val evaluationTest: SmartEvaluation = new SmartEvaluation(sparkNet.evaluate(testData))
 
-      log.info(s"${df.format(i)},${evaluationTrain.csvStats},${evaluationTest.csvStats}")
+        log.info(s"${df.format(i)},${evaluationTrain.csvStats},${evaluationTest.csvStats}")
+      }
     }
 
     //Delete the temp training files, now that we are done with them
