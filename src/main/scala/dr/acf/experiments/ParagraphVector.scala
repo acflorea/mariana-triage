@@ -368,29 +368,6 @@ object ParagraphVector extends SparkOps {
         .setInputType(InputType.convolutionalFlat(height, featureSpaceSize / height, 1))
         .backprop(true).pretrain(false).build()).toOption
 
-      val cnn_conf_2: Option[MultiLayerConfiguration] = Try(new NeuralNetConfiguration.Builder()
-        .seed(seed)
-        .seed(12345).iterations(iterations).regularization(true).l2(0.0005).learningRate(.01)
-        .weightInit(WeightInit.XAVIER).optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
-        .updater(Updater.NESTEROVS).momentum(0.9)
-        .list
-        .layer(0, new ConvolutionLayer.Builder(height, 1).name("conv1")
-          // nIn is the number of channels, nOut is the number of filters to be applied
-          .nIn(1).stride(1, 1).nOut(20)
-          .activation("identity").build())
-        .layer(1, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.AVG).name("pooling_1")
-          .kernelSize(1, 1).stride(1, 1).build())
-        .layer(2, new ConvolutionLayer.Builder(1, 1).name("conv2")
-          .dropOut(0.5)
-          .stride(1, 1).nOut(50).activation("identity").build())
-        .layer(3, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.AVG).name("pooling_2")
-          .kernelSize(1, 1).stride(1, 1).build())
-        .layer(4, new DenseLayer.Builder().activation("relu").nOut(500).build())
-        .layer(5, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).nOut(outputNum).activation("softmax").build())
-        // height, width, height
-        .setInputType(InputType.convolutionalFlat(height, featureSpaceSize, 1))
-        .backprop(true).pretrain(false).build()).toOption
-
       //Set up network configuration
       val rnn_conf: Option[MultiLayerConfiguration] = Try(new NeuralNetConfiguration.Builder()
         .seed(seed)
@@ -458,7 +435,7 @@ object ParagraphVector extends SparkOps {
     log.info(s"Training data size ${_trainingData.size}")
     log.info(s"Test data size ${_testData.size}")
 
-    val trainBatchSize = if (conf.hasPath("global.trainBatchSize")) conf.getInt("global.trainBatchSize") else 32
+    val trainBatchSize = if (conf.hasPath("global.trainBatchSize")) conf.getInt("global.trainBatchSize") else 1
 
     // train data
     val trainRecordReader = new CollectionRecordReader(_trainingData)
@@ -477,7 +454,7 @@ object ParagraphVector extends SparkOps {
     val trainingData = sc.parallelize(trainIterator.toList)
 
     val tm = new ParameterAveragingTrainingMaster.Builder(trainBatchSize)
-      .rddTrainingApproach(RDDTrainingApproach.Export)
+      .rddTrainingApproach(RDDTrainingApproach.Direct)
       .averagingFrequency(averagingFrequency)
       .workerPrefetchNumBatches(2)
       .batchSizePerWorker(batchSize)
